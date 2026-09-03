@@ -1,0 +1,33 @@
+# python
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+dist/
+build/
+
+# node
+node_modules/
+frontend/dist/
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.auto.tfvars.example
+.terraform.lock.hcl
+
+# lambda packaging
+backend/.build/
+*.zip
+
+# local
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/
