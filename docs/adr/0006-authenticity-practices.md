@@ -5,7 +5,7 @@ Status: Accepted
 
 ## Context
 
-The project is built with AI assistance, and the author wants a hiring manager to be able to tell that the design, decisions, and written answers are hers. Authorship cannot be proven cryptographically. It can be made checkable, and it must survive a live conversation, since a hiring manager can ask the author to explain any part of the system on the spot.
+The project is built with AI assistance, and the author wants readers to be able to tell that the design, decisions, and written answers are the author's own. Authorship cannot be proven cryptographically. It can be made checkable, and it must survive a live conversation, since anyone can ask the author to explain any part of the system on the spot.
 
 ## Options considered
 
@@ -13,12 +13,10 @@ The project is built with AI assistance, and the author wants a hiring manager t
 2. **A dated ADR per decision, with rejected alternatives recorded.** Generated output tends to present conclusions without the options that were rejected along the way, and a reader cannot tell reasoning from restatement without seeing what was turned down.
 3. **A visible timeline: issues before code, small commits, real PR descriptions.** Shows the shape of the work as it happened rather than a single large, unexplained drop of code.
 4. **Specificity in recruiter-facing content.** Answers name real systems and link to public evidence: conference talks, upstream pull requests, public repositories. Specific, checkable claims are harder to mistake for generated filler than general ones.
-5. **Working rules for who writes what.** The author writes the first draft of every behavioral and deep-dive answer, and AI only critiques it. The author states each ADR's decision and reasoning in her own words before formatting. Nothing merges that the author could not explain at a whiteboard. Fixes authorship at the point of drafting rather than detecting it after the fact.
-6. **A short recorded walkthrough in the author's voice.** Optional, a final, hard-to-fake signal, but not required for the other practices to hold.
-
+5. **Working rules for who writes what.** The author writes the first draft of every behavioral and deep-dive answer, and AI only critiques it. The author states each ADR's decision and reasoning in the author's own words before formatting. Nothing merges that the author could not explain at a whiteboard. Fixes authorship at the point of drafting rather than detecting it after the fact.
 ## Decision
 
-Adopt all six practices: the AI-use statement with the commit trailer, a dated ADR per decision with rejected alternatives, a visible commit and issue timeline, specific and linkable content, the drafting and review rules above, and an optional recorded walkthrough.
+Adopt all five practices: the AI-use statement with the commit trailer, a dated ADR per decision with rejected alternatives, a visible commit and issue timeline, specific and linkable content, and the drafting and review rules above.
 
 ## Consequences
 

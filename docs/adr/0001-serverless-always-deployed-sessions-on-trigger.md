@@ -5,7 +5,7 @@ Status: Accepted
 
 ## Context
 
-The original idea was to deploy on a serverless instance when triggered: spin up infrastructure per recruiter when a session is needed. This needed to be reconsidered before the app's compute and deployment model could be settled. The candidate sends all email herself and the app only drafts, so a session link has to exist as soon as she writes the reply. The budget goal is near-zero idle cost, and traffic is tiny, dozens of visits a month.
+The original idea was to deploy on a serverless instance when triggered: spin up infrastructure per recruiter when a session is needed. This needed to be reconsidered before the app's compute and deployment model could be settled. The candidate sends all email personally and the app only drafts, so a session link has to exist as soon as the reply is written. The budget goal is near-zero idle cost, and traffic is tiny, dozens of visits a month.
 
 ## Options considered
 
