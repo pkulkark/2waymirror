@@ -31,3 +31,6 @@ backend/.build/
 .DS_Store
 .idea/
 .vscode/
+coverage/
+.coverage*
+requirements-audit.txt

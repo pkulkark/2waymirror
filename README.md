@@ -26,3 +26,7 @@ Each directory's README has the full set of check commands. CI runs the same che
 ## Status
 
 Foundation. Nothing is deployed yet.
+
+## Contributing
+
+Commits and PR titles follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, with scope one of `backend`, `frontend`, `infra`, `content`, `cli`, `ci`, `docs`, `deps`. CI checks every commit on a PR and the PR title, which becomes the squash commit on merge. Coverage floors are 90% for both backend and frontend.

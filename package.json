@@ -1,0 +1,12 @@
+{
+  "name": "twowaymirror-root",
+  "private": true,
+  "description": "Repo-level tooling only (commitlint). App code lives in backend/ and frontend/.",
+  "scripts": {
+    "commitlint": "commitlint"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1"
+  }
+}
