@@ -1,0 +1,19 @@
+- id: team-structure
+  question: How is the engineering team structured, and who would I work with day to day?
+  required: true
+- id: oncall-expectations
+  question: What does the on-call rotation look like, and how is it compensated?
+  required: true
+- id: growth-path
+  question: What does a promotion path look like for this role over the next two years?
+  required: false
+- id: tech-stack
+  question: What is the current backend stack, and are there plans to change it?
+  required: true
+- id: decision-making
+  question: How are technical decisions made, and how much say does an individual engineer have?
+  required: false
+- id: org-scope
+  question: What team or org would this role own, and how is success measured for it?
+  required: true
+  variants: [staff, lead]
