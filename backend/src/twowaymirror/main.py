@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 
 from twowaymirror import __version__
+from twowaymirror.routes import router as sessions_router
 
 
 def create_app() -> FastAPI:
@@ -11,6 +12,8 @@ def create_app() -> FastAPI:
     @app.get("/api/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
+
+    app.include_router(sessions_router)
 
     return app
 
