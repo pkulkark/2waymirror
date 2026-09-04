@@ -81,6 +81,17 @@ def submit_answers(
                 detail=f"Answer for {question_id} is empty.",
             )
 
+    missing = [
+        question.id
+        for question in content.company_questions
+        if question.required and question.id not in body.answers
+    ]
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Required questions unanswered: {', '.join(missing)}",
+        )
+
     try:
         result = repository.put_answers(token, body.answers)
     except AnswersAlreadySubmittedError as exc:

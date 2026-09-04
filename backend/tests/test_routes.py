@@ -21,6 +21,13 @@ def api(
         yield TestClient(app), DynamoDBSessionRepository(settings)
 
 
+def _required_answers(client: TestClient, token: str) -> dict[str, str]:
+    content = client.get(f"/api/sessions/{token}").json()["content"]
+    return {
+        q["id"]: f"Answer for {q['id']}." for q in content["company_questions"] if q["required"]
+    }
+
+
 def test_get_session_success(api: tuple[TestClient, DynamoDBSessionRepository]) -> None:
     client, repository = api
     record = repository.create_session(company="Acme Robotics", contact="Sam", variant="senior")
@@ -91,7 +98,7 @@ def test_submit_answers_success(api: tuple[TestClient, DynamoDBSessionRepository
 
     response = client.post(
         f"/api/sessions/{record.token}/answers",
-        json={"answers": {"team-structure": "We work in small squads."}},
+        json={"answers": _required_answers(client, record.token)},
     )
 
     assert response.status_code == 201
@@ -128,7 +135,7 @@ def test_submit_answers_expired_is_410(api: tuple[TestClient, DynamoDBSessionRep
 def test_submit_answers_twice_is_409(api: tuple[TestClient, DynamoDBSessionRepository]) -> None:
     client, repository = api
     record = repository.create_session(company="Acme", contact="Sam", variant="senior")
-    payload = {"answers": {"team-structure": "first submit"}}
+    payload = {"answers": _required_answers(client, record.token)}
 
     first = client.post(f"/api/sessions/{record.token}/answers", json=payload)
     second = client.post(f"/api/sessions/{record.token}/answers", json=payload)
@@ -189,3 +196,18 @@ def test_submit_answers_no_answers_is_422(
     response = client.post(f"/api/sessions/{record.token}/answers", json={"answers": {}})
 
     assert response.status_code == 422
+
+
+def test_submit_answers_missing_required_is_422(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+) -> None:
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    answers = _required_answers(client, record.token)
+    dropped = next(iter(answers))
+    del answers[dropped]
+
+    response = client.post(f"/api/sessions/{record.token}/answers", json={"answers": answers})
+
+    assert response.status_code == 422
+    assert dropped in response.json()["detail"]
