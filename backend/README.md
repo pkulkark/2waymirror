@@ -16,9 +16,14 @@ Then, from `backend/`:
 
 ```sh
 uv sync
+export TWM_DYNAMODB_ENDPOINT=http://127.0.0.1:8000   # point the app at DynamoDB Local
 uv run python scripts/seed.py    # creates the table and one sample session, prints the link
 uv run uvicorn twowaymirror.main:app --reload --port 8080
 ```
+
+`seed.py` always defaults to DynamoDB Local. The app does not: without `TWM_DYNAMODB_ENDPOINT`
+set, boto3 resolves the real AWS endpoint for the configured region, so export it before
+starting uvicorn.
 
 The backend runs on port 8080 (not the uvicorn default of 8000) so it does not collide with
 DynamoDB Local, which listens on 8000. `TWM_CONTENT_SOURCE` defaults to `../content/sample`, the

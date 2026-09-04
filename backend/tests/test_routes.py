@@ -211,3 +211,38 @@ def test_submit_answers_missing_required_is_422(
 
     assert response.status_code == 422
     assert dropped in response.json()["detail"]
+
+
+def test_submit_answers_oversized_answer_is_422(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+) -> None:
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    answers = _required_answers(client, record.token)
+    first = next(iter(answers))
+    answers[first] = "x" * 410_000
+
+    response = client.post(f"/api/sessions/{record.token}/answers", json={"answers": answers})
+
+    assert response.status_code == 422
+
+
+def test_submit_answers_too_many_answers_is_422(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+) -> None:
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    answers = {f"q{i}": "text" for i in range(60)}
+
+    response = client.post(f"/api/sessions/{record.token}/answers", json={"answers": answers})
+
+    assert response.status_code == 422
+
+
+def test_submit_answers_total_size_is_bounded() -> None:
+    from pydantic import ValidationError
+
+    from twowaymirror.models import MAX_ANSWER_CHARS, AnswersSubmitRequest
+
+    with pytest.raises(ValidationError):
+        AnswersSubmitRequest(answers={f"q{i}": "x" * MAX_ANSWER_CHARS for i in range(45)})

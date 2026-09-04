@@ -7,14 +7,23 @@ Usage (from backend/, with DynamoDB Local running on :8000):
 
 from __future__ import annotations
 
+import os
+
 from twowaymirror.repository import DynamoDBSessionRepository, ensure_table
 from twowaymirror.settings import Settings
 
 FRONTEND_DEV_ORIGIN = "http://localhost:5173"
 
 
+LOCAL_DYNAMODB_ENDPOINT = "http://127.0.0.1:8000"
+
+
 def main() -> None:
-    settings = Settings()
+    # This script is a local-development tool. Default to DynamoDB Local so it can never touch
+    # a real table by accident; set TWM_DYNAMODB_ENDPOINT explicitly to point elsewhere.
+    endpoint = os.environ.get("TWM_DYNAMODB_ENDPOINT", LOCAL_DYNAMODB_ENDPOINT)
+    settings = Settings(TWM_DYNAMODB_ENDPOINT=endpoint)
+    print(f"Using DynamoDB at {endpoint}")
     if ensure_table(settings):
         print(f"Created table {settings.TWM_TABLE_NAME}")
     else:
