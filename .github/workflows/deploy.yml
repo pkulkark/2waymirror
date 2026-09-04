@@ -43,7 +43,7 @@ jobs:
         run: |
           cat > backend.hcl <<EOF
           bucket       = "${{ vars.TF_BACKEND_BUCKET }}"
-          key          = "terraform.tfstate"
+          key          = "2wm/dev/terraform.tfstate"
           region       = "${{ env.AWS_REGION }}"
           use_lockfile = true
           EOF
