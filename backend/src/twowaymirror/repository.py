@@ -20,7 +20,7 @@ from twowaymirror.models import Answers, Session, Variant
 from twowaymirror.settings import Settings
 
 TOKEN_BYTES = 16
-DEFAULT_SESSION_LIFETIME_DAYS = 30
+DEFAULT_SESSION_LIFETIME_DAYS = 7
 
 _ANSWERS_SK_SUFFIX = "#ANSWERS"
 
