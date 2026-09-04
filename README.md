@@ -41,8 +41,9 @@ Run `npm install` at the repo root once after cloning. Its `prepare` script poin
 
   | Variable | Purpose |
   |---|---|
-  | `AWS_DEPLOY_ROLE_ARN` | ARN of the `2wm-<env>-github-deploy` IAM role that GitHub Actions assumes via OIDC. Required for `terraform plan` on PRs and for the `deploy` workflow. |
+  | `AWS_PLAN_ROLE_ARN` | ARN of the read-only IAM role that pull request workflows assume via OIDC to run `terraform plan`. |
+  | `AWS_DEPLOY_ROLE_ARN` | ARN of the IAM role that workflows on `main` assume via OIDC to apply and deploy. |
   | `TF_BACKEND_BUCKET` | S3 bucket holding Terraform state, used to render `infra/backend.hcl` at CI time. |
   | `AWS_REGION` | Defaults to `ca-central-1` if unset. |
 
-  Until `AWS_DEPLOY_ROLE_ARN` and `TF_BACKEND_BUCKET` are set, the PR `infra` job still runs fmt/init/validate and simply skips the plan and comment steps.
+  Until `AWS_PLAN_ROLE_ARN` and `TF_BACKEND_BUCKET` are set, the PR `infra` job still runs fmt/init/validate and simply skips the plan and comment steps.
