@@ -12,16 +12,22 @@ See `docs/architecture.md` for the resources this creates and `docs/adr/0004-ter
 
 ## Bootstrap (once per AWS account)
 
-`infra/bootstrap` creates the S3 bucket that holds Terraform state for the root module. It has no remote backend of its own (state stays local) since it exists to create the bucket the root module depends on.
+`infra/bootstrap` creates the things that must exist before CI can run and that CI must never be able to change:
+
+- the S3 bucket that holds Terraform state for the root module;
+- the GitHub OIDC provider;
+- two CI roles: a read-only **plan** role trusted only by pull request workflows, and a **deploy** role trusted only by workflows on `main`. The deploy role can manage the root module's resources and the Lambda execution role, and is explicitly denied any action on the CI roles or the OIDC provider.
+
+It has no remote backend of its own (state stays local) since it creates the bucket the root module depends on. A human applies it once and re-applies it only when the CI identities change.
 
 ```sh
 cd infra/bootstrap
 terraform init
 terraform apply
-terraform output bucket_name
+terraform output
 ```
 
-Keep `infra/bootstrap/terraform.tfstate` somewhere safe; it is not itself in S3. Note the bucket name from the output, it is used below.
+Keep `infra/bootstrap/terraform.tfstate` somewhere safe; it is not itself in S3. From the outputs, set these GitHub repository variables: `TF_BACKEND_BUCKET` (`bucket_name`), `AWS_PLAN_ROLE_ARN` (`plan_role_arn`), `AWS_DEPLOY_ROLE_ARN` (`deploy_role_arn`).
 
 ## Init the root module
 
@@ -45,9 +51,19 @@ terraform apply -var env=dev
 
 `var.env` defaults to `dev`. To use a different state file per env, change `key` in `backend.hcl` and re-run `terraform init -backend-config=backend.hcl -reconfigure`.
 
-The Lambda deployment package comes from `var.lambda_zip_path` (default `../backend/build/lambda.zip`, see `docs/architecture.md`'s "Lambda packaging" section for how CI builds it). If that file does not exist, Terraform packages a placeholder stub handler instead so `plan`/`apply` still work, for example on a first bootstrap before the backend has been built anywhere. Real environments always get the real package from CI before serving traffic.
+The Lambda deployment package comes from `var.lambda_zip_path` (default `../backend/build/lambda.zip`). Build it first:
+
+```sh
+../backend/scripts/build_lambda.sh
+```
+
+If the file is missing, `apply` fails with a message saying so. The only exception is `-var allow_stub_lambda=true`, a bootstrap-only opt-in that deploys a stub handler answering 503 so the rest of the stack can be created before the first real build. It defaults to off so a missing artifact can never become a silently dead deployment.
 
 `var.domain_name` is accepted but must stay `""` for v0 (a variable validation enforces this); a custom domain needs ACM and Route53 wiring that is not built yet.
+
+## Client-side routing
+
+CloudFront serves the React build from S3. A small CloudFront Function on the web behavior rewrites any request whose last path segment has no file extension (for example `/s/<token>`) to `/index.html`. It is attached to the web behavior only, so `/api/*` responses, including 404 and 410, reach the client exactly as the API sent them. Requests for missing assets still fail as they should.
 
 ## Checks
 

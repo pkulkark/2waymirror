@@ -10,10 +10,6 @@ terraform {
       source  = "hashicorp/archive"
       version = "~> 2.6"
     }
-    tls = {
-      source  = "hashicorp/tls"
-      version = "~> 4.0"
-    }
   }
 
   # Partial config: init with -backend-config=backend.hcl (see

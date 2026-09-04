@@ -79,6 +79,13 @@ resource "aws_iam_role_policy" "lambda" {
 }
 
 resource "aws_lambda_function" "api" {
+  lifecycle {
+    precondition {
+      condition     = local.lambda_zip_exists || var.allow_stub_lambda
+      error_message = "No Lambda artifact at ${var.lambda_zip_path}. Run backend/scripts/build_lambda.sh first, or set allow_stub_lambda = true for a bootstrap-only stub deployment."
+    }
+  }
+
   function_name = "${local.name_prefix}-api"
   role          = aws_iam_role.lambda.arn
   handler       = "twowaymirror.handler.handler"

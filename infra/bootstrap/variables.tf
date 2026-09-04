@@ -14,3 +14,15 @@ variable "bucket_name" {
   type        = string
   default     = null
 }
+
+variable "env" {
+  description = "Environment the CI roles may deploy. Must match var.env of the root module."
+  type        = string
+  default     = "dev"
+}
+
+variable "github_repo" {
+  description = "GitHub repository (owner/name) allowed to assume the CI roles."
+  type        = string
+  default     = "pkulkark/2waymirror"
+}

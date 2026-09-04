@@ -24,9 +24,6 @@ output "lambda_name" {
   value = aws_lambda_function.api.function_name
 }
 
-output "deploy_role_arn" {
-  value = aws_iam_role.github_deploy.arn
-}
 
 output "distribution_id" {
   description = "CloudFront distribution ID, for CloudFront invalidation calls in CI."

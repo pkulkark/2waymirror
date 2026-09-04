@@ -45,13 +45,14 @@ variable "lambda_zip_path" {
   default     = "../backend/build/lambda.zip"
 }
 
-variable "state_bucket_name" {
+
+variable "allow_stub_lambda" {
   description = <<-EOT
-    Name of the Terraform state bucket created by infra/bootstrap. Needed
-    here only to scope the GitHub deploy role's IAM policy to that bucket's
-    ARN. Must match whatever infra/bootstrap actually created; defaults to
-    the same account-id-derived name bootstrap uses by default.
+    Bootstrap-only escape hatch. When true and lambda_zip_path does not exist,
+    a stub handler that answers 503 is deployed so the rest of the stack can be
+    created before the first real build. Defaults to false so a missing build
+    artifact fails the apply instead of silently deploying a dead function.
   EOT
-  type        = string
-  default     = null
+  type        = bool
+  default     = false
 }
