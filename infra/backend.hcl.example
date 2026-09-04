@@ -1,0 +1,9 @@
+# Copy to backend.hcl (gitignored) and fill in the bucket name that
+# infra/bootstrap output, then: terraform init -backend-config=backend.hcl
+#
+# One S3 bucket holds state for every env; envs are separated by key.
+
+bucket       = "2wm-terraform-state-<account-id>"
+key          = "2wm/dev/terraform.tfstate"
+region       = "ca-central-1"
+use_lockfile = true
