@@ -15,11 +15,13 @@ frontend/dist/
 
 # terraform
 .terraform/
+.build/
 *.tfstate
 *.tfstate.*
 *.tfvars
 !*.auto.tfvars.example
-.terraform.lock.hcl
+backend.hcl
+!backend.hcl.example
 
 # lambda packaging
 backend/.build/
