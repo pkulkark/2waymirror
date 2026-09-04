@@ -21,7 +21,7 @@ CloudFront rewrites S3 403/404 to `/index.html` with status 200 so client-side r
 | Session | `TENANT#<tenant>` | `SESSION#<token>` | `company`, `contact`, `variant`, `created_at` (ISO 8601), `expires_at` (ISO 8601), `ttl` (epoch seconds, DynamoDB TTL attribute), `revoked` (bool) |
 | Answers | `TENANT#<tenant>` | `SESSION#<token>#ANSWERS` | `submitted_at`, `answers` (map of question id to string) |
 
-Tenant is `default` for now (ADR-0002). Sessions last 30 days by default; `expires_at` and `ttl` are set at creation and can be overridden per session. Tokens are 22 characters, URL-safe, generated with `secrets.token_urlsafe(16)`. Listing sessions is a query on PK with SK `begins_with SESSION#`.
+Tenant is `default` for now (ADR-0002). Sessions last 7 days by default; `expires_at` and `ttl` are set at creation and can be overridden per session. Tokens are 22 characters, URL-safe, generated with `secrets.token_urlsafe(16)`. Listing sessions is a query on PK with SK `begins_with SESSION#`.
 
 ## API
 
