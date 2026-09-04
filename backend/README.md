@@ -1,8 +1,8 @@
 # backend
 
 FastAPI service that runs on AWS Lambda behind API Gateway. Owns sessions, variant content, and
-company answers. See `docs/architecture.md` for the API contract, DynamoDB key schema, and
-settings.
+company answers. See `docs/architecture.md` for the API contract and DynamoDB key schema, and
+`src/twowaymirror/settings.py` for the environment variables.
 
 ## Local development
 
