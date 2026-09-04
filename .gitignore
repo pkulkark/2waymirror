@@ -34,3 +34,4 @@ backend/.build/
 coverage/
 .coverage*
 requirements-audit.txt
+.claude/
