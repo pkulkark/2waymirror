@@ -77,3 +77,90 @@ jobs:
       - run: npm run build
       - name: Audit dependencies
         run: npm audit --omit=dev --audit-level=high
+
+  infra:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate
+
+      # The steps below only run when the repository variable
+      # AWS_DEPLOY_ROLE_ARN is set, so this job stays green (fmt/init/
+      # validate only) on forks and before the read-only deploy role exists.
+      - name: Configure AWS credentials (read-only plan role)
+        if: vars.AWS_DEPLOY_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'ca-central-1' }}
+
+      - name: Write backend config
+        if: vars.AWS_DEPLOY_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
+        run: |
+          cat > backend.hcl <<EOF
+          bucket       = "${{ vars.TF_BACKEND_BUCKET }}"
+          key          = "terraform.tfstate"
+          region       = "${{ vars.AWS_REGION || 'ca-central-1' }}"
+          use_lockfile = true
+          EOF
+
+      - name: Terraform init (with backend)
+        if: vars.AWS_DEPLOY_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
+        run: terraform init -reconfigure -backend-config=backend.hcl
+
+      - name: Terraform plan
+        id: plan
+        if: vars.AWS_DEPLOY_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
+        run: terraform plan -no-color -input=false | tee plan.txt
+        continue-on-error: true
+
+      - name: Post plan to PR
+        if: vars.AWS_DEPLOY_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != '' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const planPath = path.join(process.env.GITHUB_WORKSPACE, 'infra', 'plan.txt');
+            let plan = 'No plan output found.';
+            try {
+              plan = fs.readFileSync(planPath, 'utf8');
+            } catch (err) {
+              plan = `Failed to read plan output: ${err.message}`;
+            }
+            const maxLen = 60000;
+            if (plan.length > maxLen) {
+              plan = plan.slice(0, maxLen) + '\n... (truncated)';
+            }
+            const outcome = '${{ steps.plan.outcome }}';
+            const body = [
+              `#### Terraform Plan: \`${outcome}\``,
+              '<details><summary>Show plan</summary>',
+              '',
+              '```',
+              plan,
+              '```',
+              '</details>',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+      - name: Fail job if plan failed
+        if: vars.AWS_DEPLOY_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != '' && steps.plan.outcome == 'failure'
+        run: exit 1

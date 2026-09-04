@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Enforces Conventional Commits locally, matching what CI checks on the PR.
+# Activated by `npm install` at the repo root (see the "prepare" script),
+# which sets git config core.hooksPath to this directory.
+npx commitlint --edit "$1"
