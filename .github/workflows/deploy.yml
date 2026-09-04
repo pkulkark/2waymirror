@@ -60,8 +60,8 @@ jobs:
         id: tf-outputs
         working-directory: infra
         run: |
-          echo "web_bucket=$(terraform output -raw web_bucket_name)" >> "$GITHUB_OUTPUT"
-          echo "distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+          echo "web_bucket=$(terraform output -raw web_bucket)" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:
