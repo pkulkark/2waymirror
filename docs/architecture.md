@@ -5,16 +5,16 @@ Working reference for how the pieces fit. Decisions and their reasoning live in 
 ## Runtime topology
 
 ```
-browser ──► CloudFront (2wm-<env>)
-              ├── default  ──► S3 bucket 2wm-<env>-web (OAC, private)    static React build
-              └── /api/*   ──► API Gateway HTTP API ──► Lambda 2wm-<env>-api (FastAPI via Mangum)
-                                                           ├── DynamoDB table 2wm-<env>
-                                                           └── S3 bucket 2wm-<env>-content (read-only)
+browser ──► CloudFront
+              ├── default  ──► S3 web bucket (private, origin access control)   static React build
+              └── /api/*   ──► API Gateway HTTP API ──► Lambda (FastAPI via Mangum)
+                                                           ├── DynamoDB table (sessions and answers)
+                                                           └── S3 content bucket (read-only)
 ```
 
 CloudFront rewrites S3 403/404 to `/index.html` with status 200 so client-side routes resolve. `/api/*` is never cached.
 
-## DynamoDB single table `2wm-<env>`
+## DynamoDB single table
 
 | Item | PK | SK | Attributes |
 |---|---|---|---|
