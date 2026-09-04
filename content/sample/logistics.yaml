@@ -1,0 +1,11 @@
+availability: Two weeks notice at current role
+compensation: CAD 150,000 to 170,000 base, open to discussing total comp
+work_authorization: Canadian citizen, no sponsorship required
+location_preference: Remote within Canada, or hybrid in Toronto
+notice_period: 2 weeks
+variants:
+  staff:
+    compensation: CAD 170,000 to 195,000 base, open to discussing total comp
+  lead:
+    compensation: CAD 180,000 to 205,000 base plus people-management scope
+    notice_period: 3 weeks
