@@ -12,7 +12,7 @@ browser ──► CloudFront
                                                            └── S3 content bucket (read-only)
 ```
 
-CloudFront rewrites S3 403/404 to `/index.html` with status 200 so client-side routes resolve. `/api/*` is never cached.
+CloudFront rewrites S3 403/404 to `/index.html` with status 200 so client-side routes resolve. `/api/*` is never cached. The backend is deployed as a zip built by `backend/scripts/build_lambda.sh`.
 
 ## DynamoDB single table
 
@@ -70,10 +70,3 @@ Variant merge rule: base value, then `variants.<variant>` overrides key by key. 
 - On every pull request: lint, type checks, tests with coverage floors, dependency audits, Terraform format and validation, and a Terraform plan for review.
 - On merge to `main`: package the backend, apply the Terraform plan, build the frontend, publish it to the web bucket, and invalidate the CDN cache.
 - GitHub Actions authenticates to AWS with short-lived credentials via OIDC federation. No long-lived keys are stored anywhere.
-
-## Lambda packaging
-
-1. Export the locked, non-dev dependencies to a requirements file with `uv export --no-dev`.
-2. Install them into a build directory as prebuilt wheels for the Lambda platform (arm64, Python 3.13), so nothing is compiled on the developer machine.
-3. Copy the `twowaymirror` package alongside them.
-4. Zip the build directory deterministically. The handler is `twowaymirror.handler.handler`.
