@@ -9,8 +9,7 @@ comes from the API. See `docs/architecture.md` at the repo root for the full con
 - React Router v7 (declarative mode: `BrowserRouter` / `Routes` / `Route`)
 - Tailwind v4 (`@tailwindcss/vite` plugin), shadcn/ui components (neutral theme) in
   `src/components/ui/`
-- `react-markdown` to render answer text; it renders Markdown to React elements without
-  raw HTML injection, so it's the "small safe renderer" the contract calls for
+- `react-markdown` to render answer text as React elements without raw HTML injection
 - Vitest + Testing Library for tests
 
 ## Routes
