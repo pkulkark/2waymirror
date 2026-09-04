@@ -4,7 +4,7 @@ React 19 + TypeScript + Vite. Static build served from S3 + CloudFront; all sess
 
 ```sh
 npm install
-npm run dev          # http://localhost:5173, proxies /api to the backend on :8000
+npm run dev          # http://localhost:5173, proxies /api to the backend on :8080
 npm test
 npm run lint && npm run typecheck && npm run format:check
 npm run build
