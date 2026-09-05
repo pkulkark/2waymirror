@@ -1,0 +1,7 @@
+# First apply in a fresh account only. Copy this file to
+# backend_local_override.tf: Terraform merges *_override.tf files last, so
+# this local backend replaces the S3 backend in versions.tf until the file is
+# deleted. Delete it after the first apply and migrate the state (README).
+terraform {
+  backend "local" {}
+}

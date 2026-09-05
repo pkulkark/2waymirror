@@ -20,16 +20,20 @@ See `docs/architecture.md` for the resources this creates and `docs/adr/0004-ter
 
 A human applies it; CI cannot. It creates the state bucket, so the very first apply has to run with local state, after which the state is moved into that bucket under its own key so nothing important lives only on one laptop.
 
-First time in a fresh account:
+First time in a fresh account. The S3 backend cannot be used before the bucket exists, and `terraform init -backend=false` does not switch to local state, so a local backend is swapped in through an override file for the first apply only:
 
 ```sh
 cd infra/bootstrap
-terraform init -backend=false
+cp backend_local_override.tf.example backend_local_override.tf   # local state, just for this apply
+terraform init
 terraform apply
+rm backend_local_override.tf
 cp backend.hcl.example backend.hcl        # fill in the bucket name from the output
 terraform init -migrate-state -backend-config=backend.hcl
 rm terraform.tfstate terraform.tfstate.backup
 ```
+
+`backend_local_override.tf` is gitignored; if it is ever left in place, Terraform will silently use local state, so delete it as soon as the migration is done.
 
 Every time after that:
 

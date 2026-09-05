@@ -38,3 +38,6 @@ coverage/
 .coverage*
 requirements-audit.txt
 .claude/
+
+# bootstrap first-apply override (see infra/README.md)
+infra/bootstrap/backend_local_override.tf
