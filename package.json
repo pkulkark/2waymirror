@@ -3,7 +3,8 @@
   "private": true,
   "description": "Repo-level tooling only (commitlint). App code lives in backend/ and frontend/.",
   "scripts": {
-    "commitlint": "commitlint"
+    "commitlint": "commitlint",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

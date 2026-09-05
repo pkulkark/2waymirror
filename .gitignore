@@ -22,6 +22,7 @@ frontend/dist/
 !*.auto.tfvars.example
 backend.hcl
 !backend.hcl.example
+plan.txt
 
 # lambda packaging
 backend/.build/

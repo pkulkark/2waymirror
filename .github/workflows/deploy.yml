@@ -1,0 +1,87 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ca-central-1' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Build Lambda package
+        run: backend/scripts/build_lambda.sh
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Write backend config
+        working-directory: infra
+        run: |
+          cat > backend.hcl <<EOF
+          bucket       = "${{ vars.TF_BACKEND_BUCKET }}"
+          key          = "2wm/dev/terraform.tfstate"
+          region       = "${{ env.AWS_REGION }}"
+          use_lockfile = true
+          EOF
+
+      - name: Terraform init
+        working-directory: infra
+        run: terraform init -input=false -backend-config=backend.hcl
+
+      - name: Terraform apply
+        working-directory: infra
+        run: terraform apply -auto-approve -input=false
+
+      - name: Capture Terraform outputs
+        id: tf-outputs
+        working-directory: infra
+        run: |
+          echo "web_bucket=$(terraform output -raw web_bucket)" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Sync frontend to web bucket
+        run: |
+          aws s3 sync frontend/dist "s3://${{ steps.tf-outputs.outputs.web_bucket }}" \
+            --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ steps.tf-outputs.outputs.distribution_id }}" \
+            --paths "/*"
