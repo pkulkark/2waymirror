@@ -97,20 +97,33 @@ jobs:
       - run: terraform init -backend=false
       - run: terraform validate
 
-      # The steps below only run when the repository variable
-      # AWS_PLAN_ROLE_ARN is set, so this job stays green (fmt/init/
-      # validate only) on forks and before the read-only plan role exists.
-      # The plan role is trusted only by pull_request workflows and cannot
-      # write anything, which is why plan runs with -lock=false.
+      # The steps below run only on pull requests, and only once the
+      # repository variables AWS_PLAN_ROLE_ARN and TF_BACKEND_BUCKET exist.
+      # Pushes to main stop at fmt/init/validate: the plan role is trusted
+      # by pull_request tokens only, so a main push could not assume it.
+      # The role cannot write anything, which is why plan runs -lock=false.
+      #
+      # The plan needs the real Lambda artifact for this PR's code, since the
+      # root module refuses to plan a stub without allow_stub_lambda.
+      - uses: astral-sh/setup-uv@v5
+        if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Build Lambda artifact
+        if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
+        working-directory: .
+        run: backend/scripts/build_lambda.sh
+
       - name: Configure AWS credentials (read-only plan role)
-        if: vars.AWS_PLAN_ROLE_ARN != ''
+        if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'ca-central-1' }}
 
       - name: Write backend config
-        if: vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
+        if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
         run: |
           cat > backend.hcl <<EOF
           bucket       = "${{ vars.TF_BACKEND_BUCKET }}"
@@ -120,17 +133,17 @@ jobs:
           EOF
 
       - name: Terraform init (with backend)
-        if: vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
+        if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
         run: terraform init -reconfigure -backend-config=backend.hcl
 
       - name: Terraform plan
         id: plan
-        if: vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
+        if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
         run: terraform plan -no-color -input=false -lock=false | tee plan.txt
         continue-on-error: true
 
       - name: Post plan to PR
-        if: vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != '' && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
         uses: actions/github-script@v7
         with:
           script: |
@@ -165,5 +178,5 @@ jobs:
             });
 
       - name: Fail job if plan failed
-        if: vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != '' && steps.plan.outcome == 'failure'
+        if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != '' && steps.plan.outcome == 'failure'
         run: exit 1
