@@ -40,10 +40,21 @@ resource "aws_iam_openid_connect_provider" "github" {
   thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
 }
 
+locals {
+  # GitHub's OIDC subject embeds owner and repository ids next to the names
+  # (repo:<owner>@<owner_id>/<name>@<repo_id>:<context>) so a renamed or
+  # recreated repository cannot inherit trust. Accept that form and the
+  # older name-only form.
+  github_repo_subjects = [
+    "repo:${var.github_repo}",
+    "repo:${split("/", var.github_repo)[0]}@${var.github_owner_id}/${split("/", var.github_repo)[1]}@${var.github_repo_id}",
+  ]
+}
+
 data "aws_iam_policy_document" "assume_from_github" {
   for_each = {
-    plan   = "repo:${var.github_repo}:pull_request"
-    deploy = "repo:${var.github_repo}:ref:refs/heads/main"
+    plan   = "pull_request"
+    deploy = "ref:refs/heads/main"
   }
 
   statement {
@@ -64,7 +75,7 @@ data "aws_iam_policy_document" "assume_from_github" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [each.value]
+      values   = [for subject in local.github_repo_subjects : "${subject}:${each.value}"]
     }
   }
 }

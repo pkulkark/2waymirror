@@ -115,12 +115,6 @@ jobs:
         working-directory: .
         run: backend/scripts/build_lambda.sh
 
-      - name: Debug OIDC claims (temporary)
-        if: github.event_name == 'pull_request'
-        run: |
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
-          echo "$TOKEN" | cut -d. -f2 | tr '_-' '/+' | awk '{ l=length($0)%4; if (l==2) print $0"=="; else if (l==3) print $0"="; else print $0 }' | base64 -d | jq '{sub, aud, iss, repository, ref, event_name}'
-
       - name: Configure AWS credentials (read-only plan role)
         if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
         uses: aws-actions/configure-aws-credentials@v4
