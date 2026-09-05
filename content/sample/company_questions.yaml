@@ -16,4 +16,4 @@
 - id: org-scope
   question: What team or org would this role own, and how is success measured for it?
   required: true
-  variants: [staff, lead]
+  variants: [principal, manager]

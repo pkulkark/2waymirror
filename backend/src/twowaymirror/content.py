@@ -30,9 +30,14 @@ class ContentError(Exception):
     """The content tree is missing a file or is shaped incorrectly."""
 
 
+class UnknownVariantError(ContentError):
+    """The requested variant is not declared in the content's variants.yaml."""
+
+
 class _RawContent(BaseModel):
     """The content tree as read from disk/S3, before variant resolution."""
 
+    variants: list[str]
     profile: dict[str, Any]
     logistics: dict[str, Any]
     company_questions: list[dict[str, Any]]
@@ -118,6 +123,10 @@ def _parse_front_matter(text: str) -> tuple[dict[str, Any], str]:
 
 
 def _load_raw(source: _ContentSource) -> _RawContent:
+    declared = yaml.safe_load(source.read_text("variants.yaml")) or []
+    variants = [str(entry["id"]) if isinstance(entry, dict) else str(entry) for entry in declared]
+    if not variants:
+        raise ContentError("variants.yaml must declare at least one variant id")
     profile = yaml.safe_load(source.read_text("profile.yaml")) or {}
     logistics = yaml.safe_load(source.read_text("logistics.yaml")) or {}
     company_questions = yaml.safe_load(source.read_text("company_questions.yaml")) or []
@@ -141,6 +150,7 @@ def _load_raw(source: _ContentSource) -> _RawContent:
         front_matter[answer_id], bodies[answer_id] = _parse_front_matter(text)
 
     return _RawContent(
+        variants=variants,
         profile=profile,
         logistics=logistics,
         company_questions=company_questions,
@@ -212,7 +222,14 @@ def _get_raw_content(source: str, region: str) -> _RawContent:
 
 def load_content(settings: Settings, *, variant: Variant) -> Content:
     raw = _get_raw_content(settings.TWM_CONTENT_SOURCE, settings.AWS_REGION)
+    if variant not in raw.variants:
+        raise UnknownVariantError(variant)
     return _resolve(raw, variant)
+
+
+def declared_variants(settings: Settings) -> list[str]:
+    """Variant ids the loaded content declares, in declaration order."""
+    return list(_get_raw_content(settings.TWM_CONTENT_SOURCE, settings.AWS_REGION).variants)
 
 
 def clear_cache() -> None:

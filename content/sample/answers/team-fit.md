@@ -4,7 +4,7 @@ evidence:
   - label: Blog post on async-first team norms
     url: https://example.com/blog/async-first-teams
 variants:
-  lead:
+  manager:
     question: What kind of team do you want to build, and how do you support the managers under you?
 ---
 I do best on a small, async-first team that writes things down and reviews in public. As a

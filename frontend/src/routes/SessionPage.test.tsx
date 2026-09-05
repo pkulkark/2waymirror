@@ -17,7 +17,7 @@ const sample: SessionContentResponse = {
   },
   content: {
     candidate: { name: 'Jordan Sample', headline: 'Senior Backend Engineer' },
-    logistics: { availability: 'Two weeks notice', compensation: 'CAD 150k' },
+    logistics: { availability: 'Two weeks notice', compensation: 'EUR 70k' },
     sections: [
       {
         id: 'intro',

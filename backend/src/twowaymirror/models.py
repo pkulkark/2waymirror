@@ -10,11 +10,12 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, model_validator
 
-Variant = Literal["senior", "staff", "lead"]
+# Variant ids are declared by the content (variants.yaml), never by code.
+Variant = str
 
 
 class Evidence(BaseModel):

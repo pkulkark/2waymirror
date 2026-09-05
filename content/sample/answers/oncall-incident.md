@@ -4,7 +4,7 @@ evidence:
   - label: Postmortem template used afterward
     url: https://example.com/docs/postmortem-template
 variants:
-  staff:
+  principal:
     evidence:
       - label: Postmortem template used afterward
         url: https://example.com/docs/postmortem-template

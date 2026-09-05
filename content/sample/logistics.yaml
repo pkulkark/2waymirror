@@ -1,11 +1,11 @@
-availability: Two weeks notice at current role
-compensation: CAD 150,000 to 170,000 base, open to discussing total comp
-work_authorization: Canadian citizen, no sponsorship required
-location_preference: Remote within Canada, or hybrid in Toronto
-notice_period: 2 weeks
+availability: One month notice at current role
+compensation: EUR 70,000 to 85,000 base, open to discussing total comp
+work_authorization: EU citizen, no sponsorship required
+location_preference: Remote within the EU, or hybrid in Lisbon
+notice_period: 1 month
 variants:
-  staff:
-    compensation: CAD 170,000 to 195,000 base, open to discussing total comp
-  lead:
-    compensation: CAD 180,000 to 205,000 base plus people-management scope
-    notice_period: 3 weeks
+  principal:
+    compensation: EUR 85,000 to 100,000 base, open to discussing total comp
+  manager:
+    compensation: EUR 90,000 to 110,000 base plus people-management scope
+    notice_period: 2 months

@@ -2,8 +2,8 @@
 
 Schema and a sample candidate for the recruiter-facing content: logistics, initial-conversation
 answers, behavioral answers, project deep dives, and the questions asked of the company. YAML for
-structured facts, Markdown for prose, with an overlay per role-level variant (senior, staff,
-lead).
+structured facts, Markdown for prose, with an overlay per role-level variant. The variant ids
+themselves are declared by the content, not by code.
 
 **This directory contains only a fictional sample candidate.** It exists so the app runs end to
 end locally, in tests, and in a fresh fork. The real candidate's content is kept in a separate
@@ -15,9 +15,10 @@ Content is served only against a valid session token and is never bundled into t
 ## Layout
 
 ```
+variants.yaml               # the variant ids this content supports (id, label)
 profile.yaml                # name, headline, links, location
 logistics.yaml              # base facts; may contain per-variant overrides under `variants:`
-company_questions.yaml      # list; each may carry `variants: [senior, lead]` to restrict
+company_questions.yaml      # list; each may carry `variants: [...]` to restrict
 sections/<section>.yaml     # id, title, ordered list of answer ids
 answers/<id>.md             # YAML front matter: question, evidence (list of label/url),
                              # variants (optional emphasis overrides); body is the answer

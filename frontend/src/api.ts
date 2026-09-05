@@ -6,7 +6,8 @@
  * under `content`, and the errors are the status codes the contract lists for each route.
  */
 
-export type Variant = 'senior' | 'staff' | 'lead'
+// Variant ids are declared by the candidate's content, not by the frontend.
+export type Variant = string
 
 export interface Session {
   company: string

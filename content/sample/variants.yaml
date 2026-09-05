@@ -1,0 +1,8 @@
+# Variant ids this candidate's content supports. Sessions are created with one
+# of these ids. Overrides elsewhere in the content are keyed by the same ids.
+- id: senior
+  label: Senior engineer
+- id: principal
+  label: Principal engineer
+- id: manager
+  label: Engineering manager
