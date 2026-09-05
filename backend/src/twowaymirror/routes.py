@@ -6,8 +6,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from twowaymirror.content import load_content
-from twowaymirror.models import AnswersSubmitRequest, SessionContentResponse, SubmitAnswersResponse
+from twowaymirror.content import UnknownVariantError, load_content
+from twowaymirror.models import (
+    AnswersSubmitRequest,
+    Content,
+    SessionContentResponse,
+    SubmitAnswersResponse,
+)
 from twowaymirror.repository import (
     AnswersAlreadySubmittedError,
     DynamoDBSessionRepository,
@@ -37,13 +42,23 @@ def _get_available_session(repository: DynamoDBSessionRepository, token: str) ->
     return record
 
 
+def _content_for(settings: Settings, variant: str) -> Content:
+    try:
+        return load_content(settings, variant=variant)
+    except UnknownVariantError as exc:
+        # The session points at a variant the deployed content does not declare.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session content unavailable."
+        ) from exc
+
+
 @router.get("/sessions/{token}", response_model=SessionContentResponse)
 def get_session(
     token: str, repository: RepositoryDep, settings: SettingsDep
 ) -> SessionContentResponse:
     record = _get_available_session(repository, token)
     answers = repository.get_answers(token)
-    content = load_content(settings, variant=record.variant)
+    content = _content_for(settings, record.variant)
     return SessionContentResponse(
         session=record.to_session(answers_submitted=answers is not None),
         content=content,
@@ -62,7 +77,7 @@ def submit_answers(
     settings: SettingsDep,
 ) -> SubmitAnswersResponse:
     record = _get_available_session(repository, token)
-    content = load_content(settings, variant=record.variant)
+    content = _content_for(settings, record.variant)
     known_ids = {question.id for question in content.company_questions}
 
     if not body.answers:

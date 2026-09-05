@@ -162,7 +162,7 @@ def test_submit_answers_restricted_question_for_variant_is_422(
     api: tuple[TestClient, DynamoDBSessionRepository],
 ) -> None:
     client, repository = api
-    # org-scope is restricted to staff/lead; answering it in a senior session is unknown.
+    # org-scope is restricted to principal/manager; answering it in a senior session is unknown.
     record = repository.create_session(company="Acme", contact="Sam", variant="senior")
 
     response = client.post(
@@ -246,3 +246,14 @@ def test_submit_answers_total_size_is_bounded() -> None:
 
     with pytest.raises(ValidationError):
         AnswersSubmitRequest(answers={f"q{i}": "x" * MAX_ANSWER_CHARS for i in range(45)})
+
+
+def test_get_session_with_undeclared_variant_is_404(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+) -> None:
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="cto")
+
+    response = client.get(f"/api/sessions/{record.token}")
+
+    assert response.status_code == 404

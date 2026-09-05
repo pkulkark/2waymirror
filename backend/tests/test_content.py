@@ -6,7 +6,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from twowaymirror.content import ContentError, load_content
+from twowaymirror.content import ContentError, UnknownVariantError, declared_variants, load_content
 from twowaymirror.settings import Settings
 
 SAMPLE_CONTENT_DIR = Path(__file__).resolve().parents[2] / "content" / "sample"
@@ -16,10 +16,10 @@ def test_load_content_local_senior(settings: Settings) -> None:
     result = load_content(settings, variant="senior")
 
     assert result.candidate["name"] == "Jordan Sample"
-    assert result.logistics["compensation"].startswith("CAD 150,000")
+    assert result.logistics["compensation"].startswith("EUR 70,000")
 
     question_ids = {question.id for question in result.company_questions}
-    assert "org-scope" not in question_ids  # restricted to staff/lead
+    assert "org-scope" not in question_ids  # restricted to principal/manager
 
     assert [section.id for section in result.sections] == ["initial-conversation", "deep-dives"]
 
@@ -29,26 +29,26 @@ def test_load_content_local_senior(settings: Settings) -> None:
     assert why_leaving.answer_md.strip().startswith("I am looking for a role")
 
 
-def test_load_content_staff_variant_unlocks_question_and_extra_evidence(
+def test_load_content_principal_variant_unlocks_question_and_extra_evidence(
     settings: Settings,
 ) -> None:
-    result = load_content(settings, variant="staff")
+    result = load_content(settings, variant="principal")
 
     question_ids = {question.id for question in result.company_questions}
     assert "org-scope" in question_ids
 
-    assert result.logistics["compensation"].startswith("CAD 170,000")
+    assert result.logistics["compensation"].startswith("EUR 85,000")
 
     deep_dive_items = {item.id: item for item in result.sections[1].items}
     assert len(deep_dive_items["oncall-incident"].evidence) == 2
 
 
-def test_load_content_lead_variant_overrides_question_text(settings: Settings) -> None:
-    result = load_content(settings, variant="lead")
+def test_load_content_manager_variant_overrides_question_text(settings: Settings) -> None:
+    result = load_content(settings, variant="manager")
 
     question_ids = {question.id for question in result.company_questions}
     assert "org-scope" in question_ids
-    assert result.logistics["notice_period"] == "3 weeks"
+    assert result.logistics["notice_period"] == "2 months"
 
     initial_items = {item.id: item for item in result.sections[0].items}
     assert initial_items["team-fit"].question.startswith("What kind of team do you want to build")
@@ -101,3 +101,12 @@ def test_load_content_from_s3(aws_credentials: None) -> None:
             "initial-conversation",
             "deep-dives",
         ]
+
+
+def test_declared_variants_come_from_content(settings: Settings) -> None:
+    assert declared_variants(settings) == ["senior", "principal", "manager"]
+
+
+def test_load_content_unknown_variant_raises(settings: Settings) -> None:
+    with pytest.raises(UnknownVariantError):
+        load_content(settings, variant="cto")

@@ -41,7 +41,7 @@ def test_created_session_token_is_url_safe_and_unique(
     repository: DynamoDBSessionRepository,
 ) -> None:
     first = repository.create_session(company="A", contact="a", variant="senior")
-    second = repository.create_session(company="B", contact="b", variant="staff")
+    second = repository.create_session(company="B", contact="b", variant="principal")
 
     assert first.token != second.token
     assert len(first.token) == 22  # secrets.token_urlsafe(16) -> 22 chars
@@ -49,7 +49,7 @@ def test_created_session_token_is_url_safe_and_unique(
 
 def test_list_sessions_excludes_answers_items(repository: DynamoDBSessionRepository) -> None:
     a = repository.create_session(company="A", contact="a", variant="senior")
-    b = repository.create_session(company="B", contact="b", variant="staff")
+    b = repository.create_session(company="B", contact="b", variant="principal")
     repository.put_answers(a.token, {"q1": "an answer"})
 
     sessions = repository.list_sessions()
