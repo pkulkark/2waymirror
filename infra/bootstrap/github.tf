@@ -12,8 +12,11 @@
 
 locals {
   name_prefix = "2wm-${var.env}"
-  account_id  = data.aws_caller_identity.current.account_id
-  partition   = "aws"
+  # CI may touch only the root module's state objects (2wm/<env>/...), never
+  # this bootstrap module's own state, which lives under 2wm/bootstrap/.
+  state_key_prefix = "2wm/${var.env}/"
+  account_id       = data.aws_caller_identity.current.account_id
+  partition        = "aws"
   # ARNs of the root module's resources, by naming convention (the root module
   # does not exist yet when this is applied).
   table_arn        = "arn:${local.partition}:dynamodb:${var.region}:${local.account_id}:table/${local.name_prefix}"
@@ -77,10 +80,22 @@ resource "aws_iam_role" "github_plan" {
 
 data "aws_iam_policy_document" "github_plan" {
   statement {
+    sid       = "StateBucketList"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.tfstate.arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${local.state_key_prefix}*"]
+    }
+  }
+
+  statement {
     sid       = "StateRead"
     effect    = "Allow"
-    actions   = ["s3:ListBucket", "s3:GetObject", "s3:GetObjectVersion"]
-    resources = [aws_s3_bucket.tfstate.arn, "${aws_s3_bucket.tfstate.arn}/*"]
+    actions   = ["s3:GetObject", "s3:GetObjectVersion"]
+    resources = ["${aws_s3_bucket.tfstate.arn}/${local.state_key_prefix}*"]
   }
 
   statement {
@@ -151,10 +166,22 @@ resource "aws_iam_role" "github_deploy" {
 
 data "aws_iam_policy_document" "github_deploy" {
   statement {
+    sid       = "StateBucketList"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.tfstate.arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${local.state_key_prefix}*"]
+    }
+  }
+
+  statement {
     sid       = "StateReadWrite"
     effect    = "Allow"
-    actions   = ["s3:ListBucket", "s3:GetObject", "s3:GetObjectVersion", "s3:PutObject", "s3:DeleteObject"]
-    resources = [aws_s3_bucket.tfstate.arn, "${aws_s3_bucket.tfstate.arn}/*"]
+    actions   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject", "s3:DeleteObject"]
+    resources = ["${aws_s3_bucket.tfstate.arn}/${local.state_key_prefix}*"]
   }
 
   statement {
