@@ -1,0 +1,411 @@
+from __future__ import annotations
+
+from collections.abc import Iterator
+from pathlib import Path
+
+import boto3
+import pytest
+import yaml
+from moto import mock_aws
+from typer.testing import CliRunner
+
+from twowaymirror.cli import app
+from twowaymirror.repository import DynamoDBSessionRepository, ensure_table
+from twowaymirror.settings import Settings
+
+SAMPLE_CONTENT_DIR = Path(__file__).resolve().parents[2] / "content" / "sample"
+
+
+@pytest.fixture
+def cli(
+    settings: Settings, aws_credentials: None
+) -> Iterator[tuple[CliRunner, DynamoDBSessionRepository]]:
+    with mock_aws():
+        ensure_table(settings)
+        yield CliRunner(), DynamoDBSessionRepository(settings)
+
+
+def test_create_success(cli: tuple[CliRunner, DynamoDBSessionRepository]) -> None:
+    runner, repository = cli
+
+    result = runner.invoke(
+        app,
+        ["create", "--company", "Acme Robotics", "--contact", "Sam", "--variant", "senior"],
+    )
+
+    assert result.exit_code == 0
+    assert "Acme Robotics" in result.output
+    assert "Sam" in result.output
+    assert "senior" in result.output
+    assert "http://localhost:5173/s/" in result.output
+
+    [record] = repository.list_sessions()
+    assert record.company == "Acme Robotics"
+    assert record.variant == "senior"
+
+
+def test_create_respects_days_option(cli: tuple[CliRunner, DynamoDBSessionRepository]) -> None:
+    runner, repository = cli
+
+    result = runner.invoke(
+        app,
+        [
+            "create",
+            "--company",
+            "Acme",
+            "--contact",
+            "Sam",
+            "--variant",
+            "senior",
+            "--days",
+            "1",
+        ],
+    )
+
+    assert result.exit_code == 0
+    [record] = repository.list_sessions()
+    assert (record.expires_at - record.created_at).days == 1
+
+
+def test_create_unknown_variant_exits_nonzero(
+    cli: tuple[CliRunner, DynamoDBSessionRepository],
+) -> None:
+    runner, repository = cli
+
+    result = runner.invoke(
+        app,
+        ["create", "--company", "Acme", "--contact", "Sam", "--variant", "cto"],
+    )
+
+    assert result.exit_code == 1
+    assert "unknown variant" in result.output
+    assert "senior" in result.output  # declared variants are listed
+    assert repository.list_sessions() == []
+
+
+def test_list_hides_expired_and_revoked_by_default(
+    cli: tuple[CliRunner, DynamoDBSessionRepository],
+) -> None:
+    runner, repository = cli
+    live = repository.create_session(company="Live Co", contact="A", variant="senior")
+    expired = repository.create_session(
+        company="Expired Co", contact="B", variant="senior", lifetime_days=-1
+    )
+    revoked = repository.create_session(company="Revoked Co", contact="C", variant="senior")
+    repository.revoke_session(revoked.token)
+
+    result = runner.invoke(app, ["list"])
+
+    assert result.exit_code == 0
+    assert live.token in result.output
+    assert expired.token not in result.output
+    assert revoked.token not in result.output
+
+
+def test_list_all_includes_expired_and_revoked(
+    cli: tuple[CliRunner, DynamoDBSessionRepository],
+) -> None:
+    runner, repository = cli
+    expired = repository.create_session(
+        company="Expired Co", contact="B", variant="senior", lifetime_days=-1
+    )
+    revoked = repository.create_session(company="Revoked Co", contact="C", variant="senior")
+    repository.revoke_session(revoked.token)
+
+    result = runner.invoke(app, ["list", "--all"])
+
+    assert result.exit_code == 0
+    assert "expired" in result.output
+    assert "revoked" in result.output
+    assert expired.token in result.output
+    assert revoked.token in result.output
+
+
+def test_list_shows_answers_column(cli: tuple[CliRunner, DynamoDBSessionRepository]) -> None:
+    runner, repository = cli
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    repository.put_answers(record.token, {"team-structure": "A small team."})
+
+    result = runner.invoke(app, ["list"])
+
+    lines = [line for line in result.output.splitlines() if record.token in line]
+    assert len(lines) == 1
+    assert lines[0].strip().endswith("yes")
+
+
+def test_list_empty_prints_message(cli: tuple[CliRunner, DynamoDBSessionRepository]) -> None:
+    runner, _repository = cli
+
+    result = runner.invoke(app, ["list"])
+
+    assert result.exit_code == 0
+    assert "no sessions" in result.output
+
+
+def test_revoke_success(cli: tuple[CliRunner, DynamoDBSessionRepository]) -> None:
+    runner, repository = cli
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+
+    result = runner.invoke(app, ["revoke", record.token])
+
+    assert result.exit_code == 0
+    assert "Acme" in result.output
+    fetched = repository.get_session(record.token)
+    assert fetched is not None
+    assert fetched.revoked is True
+
+
+def test_revoke_is_idempotent(cli: tuple[CliRunner, DynamoDBSessionRepository]) -> None:
+    runner, repository = cli
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+
+    first = runner.invoke(app, ["revoke", record.token])
+    second = runner.invoke(app, ["revoke", record.token])
+
+    assert first.exit_code == 0
+    assert second.exit_code == 0
+    fetched = repository.get_session(record.token)
+    assert fetched is not None
+    assert fetched.revoked is True
+
+
+def test_revoke_unknown_token_exits_nonzero(
+    cli: tuple[CliRunner, DynamoDBSessionRepository],
+) -> None:
+    runner, _repository = cli
+
+    result = runner.invoke(app, ["revoke", "does-not-exist"])
+
+    assert result.exit_code == 1
+    assert "unknown session token" in result.output
+
+
+def test_draft_reply_success(cli: tuple[CliRunner, DynamoDBSessionRepository]) -> None:
+    runner, repository = cli
+    record = repository.create_session(company="Acme Robotics", contact="Sam", variant="senior")
+
+    result = runner.invoke(app, ["draft-reply", record.token])
+
+    assert result.exit_code == 0
+    assert "Sam" in result.output
+    assert "Acme Robotics" in result.output
+    assert f"http://localhost:5173/s/{record.token}" in result.output
+    assert "—" not in result.output  # no em-dashes
+
+
+def test_draft_reply_unknown_token_exits_nonzero(
+    cli: tuple[CliRunner, DynamoDBSessionRepository],
+) -> None:
+    runner, _repository = cli
+
+    result = runner.invoke(app, ["draft-reply", "does-not-exist"])
+
+    assert result.exit_code == 1
+    assert "unknown session token" in result.output
+
+
+def test_draft_reply_missing_template_is_content_error(
+    cli: tuple[CliRunner, DynamoDBSessionRepository],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner, repository = cli
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+
+    content_without_template = tmp_path / "content"
+    content_without_template.mkdir()
+    for item in SAMPLE_CONTENT_DIR.iterdir():
+        if item.name != "email_reply.md":
+            (content_without_template / item.name).symlink_to(item)
+    monkeypatch.setenv("TWM_CONTENT_SOURCE", str(content_without_template))
+
+    result = runner.invoke(app, ["draft-reply", record.token])
+
+    assert result.exit_code == 1
+    assert "email_reply.md" in result.output
+
+
+def test_pull_writes_expected_schema(
+    cli: tuple[CliRunner, DynamoDBSessionRepository], tmp_path: Path
+) -> None:
+    runner, repository = cli
+    record = repository.create_session(company="Gamma Corp", contact="Lee", variant="senior")
+    repository.put_answers(
+        record.token,
+        {"team-structure": "A small platform team.", "tech-stack": "Python and TypeScript."},
+    )
+
+    result = runner.invoke(app, ["pull", record.token, "--out", str(tmp_path)])
+
+    assert result.exit_code == 0
+    output_path = Path(result.output.strip())
+    assert output_path.exists()
+    assert output_path.parent == tmp_path
+    assert output_path.name.startswith("gamma-corp-")
+    assert output_path.name.endswith(".yaml")
+
+    data = yaml.safe_load(output_path.read_text())
+    assert data["session"]["token"] == record.token
+    assert data["session"]["company"] == "Gamma Corp"
+    assert data["session"]["contact"] == "Lee"
+    assert data["session"]["variant"] == "senior"
+    assert "submitted_at" in data
+
+    answers_by_id = {row["id"]: row for row in data["answers"]}
+    assert answers_by_id["team-structure"]["answer"] == "A small platform team."
+    assert answers_by_id["team-structure"]["required"] is True
+    assert answers_by_id["oncall-expectations"]["answer"] is None
+    assert answers_by_id["growth-path"]["required"] is False
+    # question order follows the content, not the order answers were submitted
+    assert [row["id"] for row in data["answers"]] == [
+        "team-structure",
+        "oncall-expectations",
+        "growth-path",
+        "tech-stack",
+        "decision-making",
+    ]
+
+
+def test_pull_unknown_token_exits_nonzero(
+    cli: tuple[CliRunner, DynamoDBSessionRepository], tmp_path: Path
+) -> None:
+    runner, _repository = cli
+
+    result = runner.invoke(app, ["pull", "does-not-exist", "--out", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "unknown session token" in result.output
+
+
+def test_pull_before_submission_exits_nonzero(
+    cli: tuple[CliRunner, DynamoDBSessionRepository], tmp_path: Path
+) -> None:
+    runner, repository = cli
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+
+    result = runner.invoke(app, ["pull", record.token, "--out", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert "not yet submitted" in result.output
+
+
+def test_content_check_ok() -> None:
+    result = CliRunner().invoke(app, ["content", "check", str(SAMPLE_CONTENT_DIR)])
+
+    assert result.exit_code == 0
+    assert "OK" in result.output
+    assert "senior" in result.output
+
+
+def test_content_check_missing_variants_file(tmp_path: Path) -> None:
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+
+    result = CliRunner().invoke(app, ["content", "check", str(empty_dir)])
+
+    assert result.exit_code == 1
+    assert "variants.yaml" in result.output
+
+
+def test_content_check_reports_first_error(tmp_path: Path) -> None:
+    incomplete = tmp_path / "incomplete"
+    incomplete.mkdir()
+    (incomplete / "variants.yaml").write_text("- id: senior\n")
+    # profile.yaml is missing entirely.
+
+    result = CliRunner().invoke(app, ["content", "check", str(incomplete)])
+
+    assert result.exit_code == 1
+    assert "profile.yaml" in result.output
+
+
+def test_content_push_uploads_every_file(aws_credentials: None) -> None:
+    with mock_aws():
+        client = boto3.client("s3", region_name="ca-central-1")
+        client.create_bucket(
+            Bucket="twm-content-test",
+            CreateBucketConfiguration={"LocationConstraint": "ca-central-1"},
+        )
+
+        result = CliRunner().invoke(
+            app,
+            [
+                "content",
+                "push",
+                str(SAMPLE_CONTENT_DIR),
+                "--bucket",
+                "twm-content-test",
+                "--prefix",
+                "sample",
+            ],
+        )
+
+        assert result.exit_code == 0
+        local_file_count = sum(1 for path in SAMPLE_CONTENT_DIR.rglob("*") if path.is_file())
+        assert f"uploaded {local_file_count} file" in result.output
+
+        keys = {obj["Key"] for obj in client.list_objects_v2(Bucket="twm-content-test")["Contents"]}
+        assert "sample/variants.yaml" in keys
+        assert "sample/answers/why-leaving.md" in keys
+        assert len(keys) == local_file_count
+
+
+def test_content_push_prune_removes_stale_keys(aws_credentials: None) -> None:
+    with mock_aws():
+        client = boto3.client("s3", region_name="ca-central-1")
+        client.create_bucket(
+            Bucket="twm-content-test",
+            CreateBucketConfiguration={"LocationConstraint": "ca-central-1"},
+        )
+        client.put_object(Bucket="twm-content-test", Key="sample/stale.yaml", Body=b"stale")
+
+        result = CliRunner().invoke(
+            app,
+            [
+                "content",
+                "push",
+                str(SAMPLE_CONTENT_DIR),
+                "--bucket",
+                "twm-content-test",
+                "--prefix",
+                "sample",
+                "--prune",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "pruned 1 file" in result.output
+        keys = {obj["Key"] for obj in client.list_objects_v2(Bucket="twm-content-test")["Contents"]}
+        assert "sample/stale.yaml" not in keys
+        assert "sample/variants.yaml" in keys
+
+
+def test_content_push_without_prune_keeps_stale_keys(aws_credentials: None) -> None:
+    with mock_aws():
+        client = boto3.client("s3", region_name="ca-central-1")
+        client.create_bucket(
+            Bucket="twm-content-test",
+            CreateBucketConfiguration={"LocationConstraint": "ca-central-1"},
+        )
+        client.put_object(Bucket="twm-content-test", Key="stale.yaml", Body=b"stale")
+
+        result = CliRunner().invoke(
+            app, ["content", "push", str(SAMPLE_CONTENT_DIR), "--bucket", "twm-content-test"]
+        )
+
+        assert result.exit_code == 0
+        keys = {obj["Key"] for obj in client.list_objects_v2(Bucket="twm-content-test")["Contents"]}
+        assert "stale.yaml" in keys
+
+
+def test_content_push_refuses_wrong_directory(tmp_path: Path) -> None:
+    not_content = tmp_path / "not-content"
+    not_content.mkdir()
+    (not_content / "readme.txt").write_text("hello")
+
+    result = CliRunner().invoke(
+        app, ["content", "push", str(not_content), "--bucket", "any-bucket"]
+    )
+
+    assert result.exit_code == 1
+    assert "variants.yaml" in result.output
