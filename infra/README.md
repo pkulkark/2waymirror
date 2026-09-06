@@ -18,16 +18,32 @@ See `docs/architecture.md` for the resources this creates and `docs/adr/0004-ter
 - the GitHub OIDC provider;
 - two CI roles: a read-only **plan** role trusted only by pull request workflows, and a **deploy** role trusted only by workflows on `main`. The deploy role can manage the root module's resources and the Lambda execution role, and is explicitly denied any action on the CI roles or the OIDC provider.
 
-It has no remote backend of its own (state stays local) since it creates the bucket the root module depends on. A human applies it once and re-applies it only when the CI identities change.
+A human applies it; CI cannot. It creates the state bucket, so the very first apply has to run with local state, after which the state is moved into that bucket under its own key so nothing important lives only on one laptop.
+
+First time in a fresh account. The S3 backend cannot be used before the bucket exists, and `terraform init -backend=false` does not switch to local state, so a local backend is swapped in through an override file for the first apply only:
 
 ```sh
 cd infra/bootstrap
+cp backend_local_override.tf.example backend_local_override.tf   # local state, just for this apply
 terraform init
 terraform apply
-terraform output
+rm backend_local_override.tf
+cp backend.hcl.example backend.hcl        # fill in the bucket name from the output
+terraform init -migrate-state -backend-config=backend.hcl
+rm terraform.tfstate terraform.tfstate.backup
 ```
 
-Keep `infra/bootstrap/terraform.tfstate` somewhere safe; it is not itself in S3. From the outputs, set these GitHub repository variables: `TF_BACKEND_BUCKET` (`bucket_name`), `AWS_PLAN_ROLE_ARN` (`plan_role_arn`), `AWS_DEPLOY_ROLE_ARN` (`deploy_role_arn`).
+`backend_local_override.tf` is gitignored; if it is ever left in place, Terraform will silently use local state, so delete it as soon as the migration is done.
+
+Every time after that:
+
+```sh
+cd infra/bootstrap
+terraform init -backend-config=backend.hcl
+terraform apply
+```
+
+From the outputs, set these GitHub repository variables: `TF_BACKEND_BUCKET` (`bucket_name`), `AWS_PLAN_ROLE_ARN` (`plan_role_arn`), `AWS_DEPLOY_ROLE_ARN` (`deploy_role_arn`). The CI roles can read and write only the root module's state objects; the bootstrap state is out of their reach.
 
 ## Init the root module
 

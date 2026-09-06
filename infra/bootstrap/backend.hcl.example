@@ -1,0 +1,4 @@
+bucket       = "2wm-terraform-state-<account-id>"
+key          = "2wm/bootstrap/terraform.tfstate"
+region       = "ca-central-1"
+use_lockfile = true

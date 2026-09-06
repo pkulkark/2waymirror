@@ -12,8 +12,11 @@
 
 locals {
   name_prefix = "2wm-${var.env}"
-  account_id  = data.aws_caller_identity.current.account_id
-  partition   = "aws"
+  # CI may touch only the root module's state objects (2wm/<env>/...), never
+  # this bootstrap module's own state, which lives under 2wm/bootstrap/.
+  state_key_prefix = "2wm/${var.env}/"
+  account_id       = data.aws_caller_identity.current.account_id
+  partition        = "aws"
   # ARNs of the root module's resources, by naming convention (the root module
   # does not exist yet when this is applied).
   table_arn        = "arn:${local.partition}:dynamodb:${var.region}:${local.account_id}:table/${local.name_prefix}"
@@ -37,10 +40,21 @@ resource "aws_iam_openid_connect_provider" "github" {
   thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
 }
 
+locals {
+  # GitHub's OIDC subject embeds owner and repository ids next to the names
+  # (repo:<owner>@<owner_id>/<name>@<repo_id>:<context>) so a renamed or
+  # recreated repository cannot inherit trust. Accept that form and the
+  # older name-only form.
+  github_repo_subjects = [
+    "repo:${var.github_repo}",
+    "repo:${split("/", var.github_repo)[0]}@${var.github_owner_id}/${split("/", var.github_repo)[1]}@${var.github_repo_id}",
+  ]
+}
+
 data "aws_iam_policy_document" "assume_from_github" {
   for_each = {
-    plan   = "repo:${var.github_repo}:pull_request"
-    deploy = "repo:${var.github_repo}:ref:refs/heads/main"
+    plan   = "pull_request"
+    deploy = "ref:refs/heads/main"
   }
 
   statement {
@@ -61,7 +75,7 @@ data "aws_iam_policy_document" "assume_from_github" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [each.value]
+      values   = [for subject in local.github_repo_subjects : "${subject}:${each.value}"]
     }
   }
 }
@@ -77,10 +91,22 @@ resource "aws_iam_role" "github_plan" {
 
 data "aws_iam_policy_document" "github_plan" {
   statement {
+    sid       = "StateBucketList"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.tfstate.arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${local.state_key_prefix}*"]
+    }
+  }
+
+  statement {
     sid       = "StateRead"
     effect    = "Allow"
-    actions   = ["s3:ListBucket", "s3:GetObject", "s3:GetObjectVersion"]
-    resources = [aws_s3_bucket.tfstate.arn, "${aws_s3_bucket.tfstate.arn}/*"]
+    actions   = ["s3:GetObject", "s3:GetObjectVersion"]
+    resources = ["${aws_s3_bucket.tfstate.arn}/${local.state_key_prefix}*"]
   }
 
   statement {
@@ -151,10 +177,22 @@ resource "aws_iam_role" "github_deploy" {
 
 data "aws_iam_policy_document" "github_deploy" {
   statement {
+    sid       = "StateBucketList"
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.tfstate.arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${local.state_key_prefix}*"]
+    }
+  }
+
+  statement {
     sid       = "StateReadWrite"
     effect    = "Allow"
-    actions   = ["s3:ListBucket", "s3:GetObject", "s3:GetObjectVersion", "s3:PutObject", "s3:DeleteObject"]
-    resources = [aws_s3_bucket.tfstate.arn, "${aws_s3_bucket.tfstate.arn}/*"]
+    actions   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject", "s3:DeleteObject"]
+    resources = ["${aws_s3_bucket.tfstate.arn}/${local.state_key_prefix}*"]
   }
 
   statement {

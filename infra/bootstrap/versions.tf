@@ -12,7 +12,9 @@ terraform {
     }
   }
 
-  # Local state on purpose: this module creates the S3 bucket the rest of
-  # infra/ stores its state in, so it cannot depend on that bucket existing
-  # yet. Applied once by hand, then left alone.
+  # This module creates the state bucket, so its very first apply runs with
+  # local state. After that, the state is migrated into the bucket it created
+  # (terraform init -migrate-state -backend-config=backend.hcl) so nothing
+  # important lives only on one laptop. See README.
+  backend "s3" {}
 }

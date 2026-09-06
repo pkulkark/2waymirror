@@ -26,3 +26,19 @@ variable "github_repo" {
   type        = string
   default     = "pkulkark/2waymirror"
 }
+
+variable "github_owner_id" {
+  description = <<-EOT
+    Numeric id of the GitHub owner (gh api users/<owner> --jq .id). GitHub's
+    OIDC subject now carries owner and repository ids alongside the names, so
+    a trust policy that matches on names alone no longer matches.
+  EOT
+  type        = string
+  default     = "13742492"
+}
+
+variable "github_repo_id" {
+  description = "Numeric id of the GitHub repository (gh api repos/<owner>/<name> --jq .id)."
+  type        = string
+  default     = "1356302345"
+}
