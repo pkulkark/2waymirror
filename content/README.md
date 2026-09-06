@@ -23,7 +23,15 @@ sections/<section>.yaml     # id, title, ordered list of answer ids
 answers/<id>.md             # YAML front matter: question, evidence (list of label/url),
                              # variants (optional emphasis overrides); body is the answer
                              # in Markdown
+email_reply.md               # plain Markdown template for `2wm draft-reply`; not part of
+                             # the per-variant tree, so it carries no front matter
 ```
+
+## email_reply.md
+
+A generic reply that says yes to a call, used by `2wm draft-reply TOKEN`. It is plain Markdown
+with `str.format`-style placeholders: `{contact}`, `{company}`, `{link}`, `{expires}`. The CLI
+only prints the rendered text; it never sends anything. A missing file is a content error.
 
 Section files are read in filename order, so `content/sample/sections/` numbers them
 (`01-initial-conversation.yaml`, `02-deep-dives.yaml`, ...) to control display order.

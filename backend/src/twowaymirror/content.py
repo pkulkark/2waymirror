@@ -24,6 +24,7 @@ from twowaymirror.settings import Settings
 
 _SECTIONS_DIR = "sections"
 _ANSWERS_DIR = "answers"
+_EMAIL_REPLY_FILENAME = "email_reply.md"
 
 
 class ContentError(Exception):
@@ -230,6 +231,16 @@ def load_content(settings: Settings, *, variant: Variant) -> Content:
 def declared_variants(settings: Settings) -> list[str]:
     """Variant ids the loaded content declares, in declaration order."""
     return list(_get_raw_content(settings.TWM_CONTENT_SOURCE, settings.AWS_REGION).variants)
+
+
+def load_email_reply_template(settings: Settings) -> str:
+    """Load the email_reply.md template (plain Markdown, str.format placeholders).
+
+    Not part of the per-variant content tree, so it is read directly rather than through the
+    module-level raw content cache. A missing file is a ContentError.
+    """
+    source = _make_source(settings.TWM_CONTENT_SOURCE, settings.AWS_REGION)
+    return source.read_text(_EMAIL_REPLY_FILENAME)
 
 
 def clear_cache() -> None:
