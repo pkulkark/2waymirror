@@ -115,10 +115,8 @@ data "aws_iam_policy_document" "github_plan" {
     actions = [
       "dynamodb:Describe*",
       "dynamodb:ListTagsOfResource",
-      "s3:GetBucket*",
-      "s3:GetEncryptionConfiguration",
-      "s3:GetLifecycleConfiguration",
-      "s3:ListBucket",
+      "s3:Get*",
+      "s3:List*",
       "lambda:GetFunction*",
       "lambda:GetPolicy",
       "lambda:ListTags",
@@ -208,14 +206,14 @@ data "aws_iam_policy_document" "github_deploy" {
     actions = [
       "s3:CreateBucket",
       "s3:DeleteBucket",
-      "s3:GetBucket*",
+      "s3:Get*",
+      "s3:List*",
       "s3:PutBucket*",
       "s3:DeleteBucketPolicy",
-      "s3:GetEncryptionConfiguration",
       "s3:PutEncryptionConfiguration",
-      "s3:GetLifecycleConfiguration",
       "s3:PutLifecycleConfiguration",
-      "s3:ListBucket",
+      "s3:PutAccelerateConfiguration",
+      "s3:PutReplicationConfiguration",
     ]
     resources = [local.web_bucket_arn, local.content_arn]
   }
@@ -272,6 +270,8 @@ data "aws_iam_policy_document" "github_deploy" {
       "iam:DeleteRolePolicy",
       "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies",
+      "iam:ListInstanceProfilesForRole",
+      "iam:UpdateAssumeRolePolicy",
       "iam:PassRole",
     ]
     resources = [local.lambda_role_arn]
@@ -338,6 +338,10 @@ data "aws_iam_policy_document" "github_deploy" {
       "apigateway:PUT",
       "apigateway:PATCH",
       "apigateway:DELETE",
+      "apigateway:TagResource",
+      "apigateway:UntagResource",
+      "logs:DescribeLogGroups",
+      "cloudfront:ListFunctions",
       "cloudfront:GetDistribution",
       "cloudfront:CreateDistribution",
       "cloudfront:UpdateDistribution",
