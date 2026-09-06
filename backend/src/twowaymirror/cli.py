@@ -3,7 +3,7 @@
 Exposed as the `2wm` console script (see pyproject.toml, `[project.scripts]`). Every command
 reads its configuration from the same environment variables as the API: `TWM_TABLE_NAME`,
 `TWM_TENANT`, `TWM_CONTENT_SOURCE`, `TWM_DYNAMODB_ENDPOINT`, `AWS_REGION`, and
-`TWM_PUBLIC_BASE_URL` (see settings.py and docs/architecture.md). Output is plain text, one
+`TWM_PUBLIC_BASE_URL` (see settings.py). Output is plain text, one
 record per line, so it stays greppable; nothing here renders with `rich`.
 """
 
@@ -16,6 +16,8 @@ from typing import Annotated, Any
 import boto3
 import typer
 import yaml
+from boto3.exceptions import S3UploadFailedError
+from botocore.exceptions import ClientError
 
 from twowaymirror import content as content_module
 from twowaymirror.content import (
@@ -193,7 +195,10 @@ def pull(
     if answers is None:
         raise _fail(f"answers not yet submitted for session {token!r}")
 
-    content = load_content(settings, variant=record.variant)
+    try:
+        content = load_content(settings, variant=record.variant)
+    except ContentError as exc:
+        raise _fail(str(exc)) from exc
     answer_rows: list[dict[str, Any]] = [
         {
             "id": question.id,
@@ -268,20 +273,32 @@ def content_push(
         relpath: f"{clean_prefix}/{relpath}" if clean_prefix else relpath for relpath in local_files
     }
 
-    for relpath, path in local_files.items():
-        client.upload_file(str(path), bucket, keys_by_relpath[relpath])
+    try:
+        for relpath, path in local_files.items():
+            client.upload_file(str(path), bucket, keys_by_relpath[relpath])
+    except (ClientError, S3UploadFailedError) as exc:
+        raise _fail(f"upload to s3://{bucket} failed: {exc}") from exc
 
     destination = f"s3://{bucket}/{clean_prefix}" if clean_prefix else f"s3://{bucket}"
     typer.echo(f"uploaded {len(local_files)} file(s) to {destination}")
 
     if prune:
-        existing_keys = _remote_keys(client, bucket, clean_prefix)
-        stale_keys = sorted(existing_keys - set(keys_by_relpath.values()))
-        if stale_keys:
-            client.delete_objects(
-                Bucket=bucket,
-                Delete={"Objects": [{"Key": key} for key in stale_keys]},
-            )
+        # Prune is destructive. Say what will go before it goes, and never wipe a
+        # prefix because the local tree happened to be nearly empty.
+        if len(local_files) < 2:
+            raise _fail("refusing to prune: SOURCE_DIR has fewer than two files")
+        try:
+            existing_keys = _remote_keys(client, bucket, clean_prefix)
+            stale_keys = sorted(existing_keys - set(keys_by_relpath.values()))
+            for key in stale_keys:
+                typer.echo(f"pruning {key}")
+            if stale_keys:
+                client.delete_objects(
+                    Bucket=bucket,
+                    Delete={"Objects": [{"Key": key} for key in stale_keys]},
+                )
+        except ClientError as exc:
+            raise _fail(f"prune on s3://{bucket} failed: {exc}") from exc
         typer.echo(f"pruned {len(stale_keys)} file(s)")
 
 

@@ -9,6 +9,7 @@ import yaml
 from moto import mock_aws
 from typer.testing import CliRunner
 
+from twowaymirror import content as content_module
 from twowaymirror.cli import app
 from twowaymirror.repository import DynamoDBSessionRepository, ensure_table
 from twowaymirror.settings import Settings
@@ -409,3 +410,46 @@ def test_content_push_refuses_wrong_directory(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert "variants.yaml" in result.output
+
+
+def test_content_push_missing_bucket_exits_nonzero(aws_credentials: None) -> None:
+    with mock_aws():
+        result = CliRunner().invoke(
+            app, ["content", "push", str(SAMPLE_CONTENT_DIR), "--bucket", "does-not-exist"]
+        )
+
+    assert result.exit_code == 1
+    assert "upload to s3://does-not-exist failed" in result.output
+
+
+def test_content_push_prune_refuses_nearly_empty_source(
+    aws_credentials: None, tmp_path: Path
+) -> None:
+    (tmp_path / "variants.yaml").write_text("- id: senior\n")
+    with mock_aws():
+        client = boto3.client("s3", region_name="ca-central-1")
+        client.create_bucket(
+            Bucket="twm-content-test",
+            CreateBucketConfiguration={"LocationConstraint": "ca-central-1"},
+        )
+        result = CliRunner().invoke(
+            app, ["content", "push", str(tmp_path), "--bucket", "twm-content-test", "--prune"]
+        )
+
+    assert result.exit_code == 1
+    assert "refusing to prune" in result.output
+
+
+def test_pull_reports_content_errors(
+    cli: tuple[CliRunner, DynamoDBSessionRepository], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runner, repository = cli
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    repository.put_answers(record.token, {"team-structure": "x"})
+    monkeypatch.setenv("TWM_CONTENT_SOURCE", "/nonexistent/content")
+    content_module.clear_cache()
+
+    result = runner.invoke(app, ["pull", record.token])
+
+    assert result.exit_code == 1
+    assert "error" in result.output.lower()
