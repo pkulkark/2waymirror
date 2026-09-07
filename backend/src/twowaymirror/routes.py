@@ -10,6 +10,7 @@ from twowaymirror.content import UnknownVariantError, load_content
 from twowaymirror.models import (
     AnswersSubmitRequest,
     Content,
+    QuestionSnapshot,
     SessionContentResponse,
     SubmitAnswersResponse,
 )
@@ -108,7 +109,15 @@ def submit_answers(
         )
 
     try:
-        result = repository.put_answers(token, body.answers)
+        result = repository.put_answers(
+            token,
+            body.answers,
+            questions=[
+                QuestionSnapshot(id=q.id, question=q.question, required=q.required)
+                for q in content.company_questions
+            ],
+            ttl=record.ttl,
+        )
     except AnswersAlreadySubmittedError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Answers already submitted."

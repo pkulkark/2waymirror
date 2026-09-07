@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -11,10 +12,29 @@ from typer.testing import CliRunner
 
 from twowaymirror import content as content_module
 from twowaymirror.cli import app
+from twowaymirror.content import load_content
+from twowaymirror.models import QuestionSnapshot
 from twowaymirror.repository import DynamoDBSessionRepository, ensure_table
 from twowaymirror.settings import Settings
 
 SAMPLE_CONTENT_DIR = Path(__file__).resolve().parents[2] / "content" / "sample"
+
+
+def _submit(
+    repository: DynamoDBSessionRepository, settings: Settings, token: str, answers: dict[str, str]
+) -> None:
+    record = repository.get_session(token)
+    assert record is not None
+    content = load_content(settings, variant=record.variant)
+    repository.put_answers(
+        token,
+        answers,
+        questions=[
+            QuestionSnapshot(id=q.id, question=q.question, required=q.required)
+            for q in content.company_questions
+        ],
+        ttl=record.ttl,
+    )
 
 
 @pytest.fixture
@@ -182,11 +202,13 @@ def test_revoke_unknown_token_exits_nonzero(
 
 
 def test_pull_writes_expected_schema(
-    cli: tuple[CliRunner, DynamoDBSessionRepository], tmp_path: Path
+    cli: tuple[CliRunner, DynamoDBSessionRepository], settings: Settings, tmp_path: Path
 ) -> None:
     runner, repository = cli
     record = repository.create_session(company="Gamma Corp", contact="Lee", variant="senior")
-    repository.put_answers(
+    _submit(
+        repository,
+        settings,
         record.token,
         {"team-structure": "A small platform team.", "tech-stack": "Python and TypeScript."},
     )
@@ -408,3 +430,57 @@ def test_pull_reports_content_errors(
 
     assert result.exit_code == 1
     assert "error" in result.output.lower()
+
+
+def test_pull_exports_questions_as_they_were_at_submission(
+    cli: tuple[CliRunner, DynamoDBSessionRepository],
+    settings: Settings,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression: content edited after a submission must not change the export."""
+    runner, repository = cli
+    record = repository.create_session(company="Gamma Corp", contact="Lee", variant="senior")
+    _submit(
+        repository,
+        settings,
+        record.token,
+        {"team-structure": "A small platform team.", "tech-stack": "Python and TypeScript."},
+    )
+
+    # Now the content changes: team-structure is removed, another question is reworded,
+    # and a new required question appears.
+    edited = tmp_path / "content"
+    shutil.copytree(SAMPLE_CONTENT_DIR, edited)
+    questions = yaml.safe_load((edited / "company_questions.yaml").read_text())
+    questions = [q for q in questions if q["id"] != "team-structure"]
+    for q in questions:
+        if q["id"] == "tech-stack":
+            q["question"] = "Reworded question"
+    questions.append({"id": "brand-new", "question": "New required question?", "required": True})
+    (edited / "company_questions.yaml").write_text(yaml.safe_dump(questions))
+    monkeypatch.setenv("TWM_CONTENT_SOURCE", str(edited))
+    content_module.clear_cache()
+
+    result = runner.invoke(app, ["pull", record.token, "--out", str(tmp_path / "out")])
+
+    assert result.exit_code == 0
+    assert "warning" not in result.output
+    data = yaml.safe_load(Path(result.output.strip()).read_text())
+    by_id = {row["id"]: row for row in data["answers"]}
+    assert by_id["team-structure"]["answer"] == "A small platform team."
+    assert by_id["tech-stack"]["question"].startswith("What is the current backend stack")
+    assert "brand-new" not in by_id
+
+
+def test_pull_warns_and_uses_current_content_for_old_submissions(
+    cli: tuple[CliRunner, DynamoDBSessionRepository], tmp_path: Path
+) -> None:
+    runner, repository = cli
+    record = repository.create_session(company="Gamma Corp", contact="Lee", variant="senior")
+    repository.put_answers(record.token, {"team-structure": "Old-style submission."})
+
+    result = runner.invoke(app, ["pull", record.token, "--out", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "predates question snapshots" in result.output

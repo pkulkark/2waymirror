@@ -171,18 +171,23 @@ def pull(
     if answers is None:
         raise _fail(f"answers not yet submitted for session {token!r}")
 
-    try:
-        content = load_content(settings, variant=record.variant)
-    except ContentError as exc:
-        raise _fail(str(exc)) from exc
+    if answers.questions:
+        questions = [(q.id, q.question, q.required) for q in answers.questions]
+    else:
+        # Submissions from before question snapshots existed. Current content is the best
+        # available record, but it may have changed since the company answered.
+        typer.echo(
+            "warning: submission predates question snapshots; exported against current content",
+            err=True,
+        )
+        try:
+            content = load_content(settings, variant=record.variant)
+        except ContentError as exc:
+            raise _fail(str(exc)) from exc
+        questions = [(q.id, q.question, q.required) for q in content.company_questions]
     answer_rows: list[dict[str, Any]] = [
-        {
-            "id": question.id,
-            "question": question.question,
-            "required": question.required,
-            "answer": answers.answers.get(question.id),
-        }
-        for question in content.company_questions
+        {"id": qid, "question": text, "required": required, "answer": answers.answers.get(qid)}
+        for qid, text, required in questions
     ]
 
     data: dict[str, Any] = {

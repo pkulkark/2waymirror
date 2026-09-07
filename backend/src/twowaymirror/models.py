@@ -34,11 +34,23 @@ class Session(BaseModel):
     answers_submitted: bool
 
 
+class QuestionSnapshot(BaseModel):
+    """A company question as it read at submission time, stored with the answers so that
+    later edits to the content cannot change what an answer was a response to."""
+
+    id: str
+    question: str
+    required: bool
+
+
 class Answers(BaseModel):
-    """The Answers item as stored: submitted_at plus the question id to answer text map."""
+    """The Answers item as stored: submitted_at, the question id to answer text map, and the
+    questions as they were when the company answered (empty for submissions that predate
+    snapshots)."""
 
     submitted_at: datetime
     answers: dict[str, str]
+    questions: list[QuestionSnapshot] = []
 
 
 # DynamoDB items are capped at 400 KiB. Keep the stored answers map well under that so the

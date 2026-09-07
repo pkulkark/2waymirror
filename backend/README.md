@@ -75,7 +75,7 @@ answers:
     answer: string | null   # null for an unanswered optional question
 ```
 
-`answers` lists every company question in the content's declared order, including unanswered
+`answers` lists every company question as it read when the company submitted (a snapshot stored with the answers), in the order shown to them, including unanswered
 optional questions (`answer: null`); a required question is never null once answers exist,
 since the API rejects a submission missing one.
 
