@@ -13,7 +13,7 @@ const sampleResponse: SessionContentResponse = {
   },
   content: {
     candidate: { name: 'Jordan Sample', headline: 'Senior Backend Engineer' },
-    logistics: { availability: 'Two weeks notice' },
+    logistics: [{ label: 'Availability', value: 'Two weeks notice' }],
     sections: [],
     company_questions: [],
   },

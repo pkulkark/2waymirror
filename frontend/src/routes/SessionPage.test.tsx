@@ -17,7 +17,10 @@ const sample: SessionContentResponse = {
   },
   content: {
     candidate: { name: 'Jordan Sample', headline: 'Senior Backend Engineer' },
-    logistics: { availability: 'Two weeks notice', compensation: 'EUR 70k' },
+    logistics: [
+      { label: 'Availability', value: 'Two weeks notice' },
+      { label: 'Compensation', value: 'EUR 70k' },
+    ],
     sections: [
       {
         id: 'intro',
@@ -26,8 +29,15 @@ const sample: SessionContentResponse = {
           {
             id: 'why-leaving',
             question: 'Why are you leaving?',
+            summary: 'Looking for more ownership.',
             answer_md: 'Looking for **new** challenges.',
-            evidence: [{ label: 'Talk', url: 'https://example.com/talk' }],
+            evidence: [{ label: 'Conference talk', url: 'https://example.com/talk', type: 'talk' }],
+          },
+          {
+            id: 'team-fit',
+            question: 'What kind of team do you work best with?',
+            answer_md: 'Small and async-first.',
+            evidence: [{ label: 'Untyped link', url: 'https://example.com/untyped' }],
           },
         ],
       },
@@ -79,10 +89,16 @@ describe('SessionPage', () => {
     })
     expect(screen.getByText('Senior Backend Engineer')).toBeInTheDocument()
     expect(screen.getByText('Why are you leaving?')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Talk' })).toHaveAttribute(
-      'href',
-      'https://example.com/talk',
-    )
+    expect(screen.getByText('Looking for more ownership.')).toBeInTheDocument()
+    expect(screen.getByText('Availability')).toBeInTheDocument()
+    expect(screen.getByText('Two weeks notice')).toBeInTheDocument()
+    const typedLink = screen.getByRole('link', { name: /Conference talk/ })
+    expect(typedLink).toHaveAttribute('href', 'https://example.com/talk')
+    expect(typedLink).toHaveTextContent('Talk: Conference talk')
+    const untypedLink = screen.getByRole('link', { name: 'Untyped link' })
+    expect(untypedLink).toHaveAttribute('href', 'https://example.com/untyped')
+    expect(untypedLink).toHaveTextContent('Untyped link')
+    expect(untypedLink.textContent).not.toContain(':')
   })
 
   test('shows a not-found state on 404', async () => {
