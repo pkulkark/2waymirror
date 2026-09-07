@@ -17,24 +17,41 @@ Content is served only against a valid session token and is never bundled into t
 ```
 variants.yaml               # the variant ids this content supports (id, label)
 profile.yaml                # name, headline, links, location
-logistics.yaml              # base facts; may contain per-variant overrides under `variants:`
+logistics.yaml              # ordered list of items (label, value); each may carry
+                             # per-variant overrides under `variants:`
 company_questions.yaml      # list; each may carry `variants: [...]` to restrict
 sections/<section>.yaml     # id, title, ordered list of answer ids
-answers/<id>.md             # YAML front matter: question, evidence (list of label/url),
-                             # variants (optional emphasis overrides); body is the answer
-                             # in Markdown
+answers/<id>.md             # YAML front matter: question, summary (optional one-line
+                             # lead), evidence (list of label, url, and an optional
+                             # type of repo, pr, talk, writeup, or other), variants
+                             # (optional emphasis overrides); body is the answer in
+                             # Markdown
 ```
 
 Section files are read in filename order, so `content/sample/sections/` numbers them
 (`01-initial-conversation.yaml`, `02-deep-dives.yaml`, ...) to control display order.
 
+`logistics.yaml` looks like this:
+
+```yaml
+- label: Availability
+  value: One month notice at current role
+- label: Compensation
+  value: EUR 70,000 to 85,000 base, open to discussing total comp
+  variants:
+    principal:
+      value: EUR 85,000 to 100,000 base, open to discussing total comp
+```
+
 ## Variant merge rule
 
 Two different `variants:` shapes appear in this tree:
 
-- `logistics.yaml` and `answers/<id>.md` front matter: `variants` is a map of variant name to a
-  partial override object. The merge is base value, then `variants.<variant>` overrides key by
-  key (shallow; a key not present in the override keeps its base value).
+- `logistics.yaml` items and `answers/<id>.md` front matter: `variants` is a map of variant
+  name to a partial override object. The merge is base value, then `variants.<variant>`
+  overrides key by key (shallow; a key not present in the override keeps its base value).
+  For `logistics.yaml`, this merge runs per item, keyed by the item's position in the list,
+  so each item's own `variants` map only ever overrides that item's own `value`.
 - `company_questions.yaml`: `variants` on a question is a list of variant names the question is
   restricted to. A question with no `variants` key is visible to every variant.
 

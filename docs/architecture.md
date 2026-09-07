@@ -35,7 +35,7 @@ All responses JSON. Errors use `{"detail": "..."}` (FastAPI default).
 
 `Session` as returned: `{"company", "contact", "variant", "created_at", "expires_at", "answers_submitted": bool}`. Never returns tenant, ttl, or revoked.
 
-`Content` as returned: `{"candidate": {...profile...}, "logistics": {...}, "sections": [{"id", "title", "items": [{"id", "question", "answer_md", "evidence": [{"label", "url"}]}]}], "company_questions": [{"id", "question", "required": bool}]}`. Everything is already merged for the session's variant; the frontend never sees other variants.
+`Content` as returned: `{"candidate": {...profile...}, "logistics": [{"label", "value"}], "sections": [{"id", "title", "items": [{"id", "question", "summary": str | null, "answer_md", "evidence": [{"label", "url", "type": str | null}]}]}], "company_questions": [{"id", "question", "required": bool}]}`. `logistics` is an ordered list, not a map. `summary` and evidence `type` are optional and `null` when the content omits them; `type` is one of `repo`, `pr`, `talk`, `writeup`, or `other`. Everything is already merged for the session's variant; the frontend never sees other variants.
 
 ## Content
 
@@ -43,13 +43,13 @@ Directory layout, identical whether the source is a local directory or an S3 pre
 
 ```
 profile.yaml                # name, headline, links, location
-logistics.yaml              # base facts; may contain per-variant overrides under `variants:`
+logistics.yaml              # ordered list of items (label, value); each may carry per-variant overrides under `variants:`
 company_questions.yaml      # list; each may carry `variants:` to restrict which variants ask it
 sections/<section>.yaml     # id, title, ordered list of answer ids
-answers/<id>.md             # YAML front matter: question, evidence (list of label/url), variants (optional emphasis overrides); body is the answer in Markdown
+answers/<id>.md             # YAML front matter: question, summary (optional one-line lead), evidence (list of label, url, and an optional type of repo/pr/talk/writeup/other), variants (optional emphasis overrides); body is the answer in Markdown
 ```
 
-Variant merge rule: base value, then `variants.<variant>` overrides key by key. Loaded once at cold start and cached in memory. The public repo ships `content/sample/` (a fictional candidate). Real content lives elsewhere (ADR-0007).
+Variant merge rule: base value, then `variants.<variant>` overrides key by key. For `logistics.yaml`, this runs per list item, so an item's `variants` map only overrides that item's own fields. Loaded once at cold start and cached in memory. The public repo ships `content/sample/` (a fictional candidate). Real content lives elsewhere (ADR-0007).
 
 ## Frontend
 
