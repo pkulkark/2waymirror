@@ -12,16 +12,28 @@ from twowaymirror.content import (
     declared_variants,
     load_content,
 )
+from twowaymirror.models import Content, Evidence
 from twowaymirror.settings import Settings
 
 SAMPLE_CONTENT_DIR = Path(__file__).resolve().parents[2] / "content" / "sample"
+
+
+def _logistics_by_label(result: Content) -> dict[str, str]:
+    return {item.label: item.value for item in result.logistics}
 
 
 def test_load_content_local_senior(settings: Settings) -> None:
     result = load_content(settings, variant="senior")
 
     assert result.candidate["name"] == "Jordan Sample"
-    assert result.logistics["compensation"].startswith("EUR 70,000")
+    assert _logistics_by_label(result)["Compensation"].startswith("EUR 70,000")
+    assert [item.label for item in result.logistics] == [
+        "Availability",
+        "Compensation",
+        "Work authorization",
+        "Location preference",
+        "Notice period",
+    ]
 
     question_ids = {question.id for question in result.company_questions}
     assert "org-scope" not in question_ids  # restricted to principal/manager
@@ -30,8 +42,25 @@ def test_load_content_local_senior(settings: Settings) -> None:
 
     why_leaving = result.sections[0].items[0]
     assert why_leaving.id == "why-leaving"
+    assert why_leaving.summary == "Looking for end-to-end ownership of a backend platform."
     assert why_leaving.evidence[0].url == "https://example.com/talks/platform-migrations"
+    assert why_leaving.evidence[0].type == "talk"
     assert why_leaving.answer_md.strip().startswith("I am looking for a role")
+
+
+def test_load_content_summary_is_none_when_front_matter_omits_it(settings: Settings) -> None:
+    result = load_content(settings, variant="senior")
+    team_fit = result.sections[0].items[1]
+
+    assert team_fit.id == "team-fit"
+    assert team_fit.summary is None
+    assert team_fit.evidence[0].type == "writeup"
+
+
+def test_evidence_type_defaults_to_none_when_absent(settings: Settings) -> None:
+    # An evidence link with no `type` key still validates and comes back untyped.
+    evidence = Evidence(label="Some link", url="https://example.com/x")
+    assert evidence.type is None
 
 
 def test_load_content_principal_variant_unlocks_question_and_extra_evidence(
@@ -42,7 +71,7 @@ def test_load_content_principal_variant_unlocks_question_and_extra_evidence(
     question_ids = {question.id for question in result.company_questions}
     assert "org-scope" in question_ids
 
-    assert result.logistics["compensation"].startswith("EUR 85,000")
+    assert _logistics_by_label(result)["Compensation"].startswith("EUR 85,000")
 
     deep_dive_items = {item.id: item for item in result.sections[1].items}
     assert len(deep_dive_items["oncall-incident"].evidence) == 2
@@ -53,7 +82,7 @@ def test_load_content_manager_variant_overrides_question_text(settings: Settings
 
     question_ids = {question.id for question in result.company_questions}
     assert "org-scope" in question_ids
-    assert result.logistics["notice_period"] == "2 months"
+    assert _logistics_by_label(result)["Notice period"] == "2 months"
 
     initial_items = {item.id: item for item in result.sections[0].items}
     assert initial_items["team-fit"].question.startswith("What kind of team do you want to build")
