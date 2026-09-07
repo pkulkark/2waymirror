@@ -20,6 +20,20 @@ from twowaymirror.models import Answers, Session, Variant
 from twowaymirror.settings import Settings
 
 TOKEN_BYTES = 16
+
+
+def new_token() -> str:
+    """URL-safe session token that never starts with '-' or '_'.
+
+    token_urlsafe can begin with either, and a leading '-' makes the token look like a
+    command-line option to any CLI it is passed to.
+    """
+    while True:
+        token = secrets.token_urlsafe(TOKEN_BYTES)
+        if token[0].isalnum():
+            return token
+
+
 DEFAULT_SESSION_LIFETIME_DAYS = 7
 
 _ANSWERS_SK_SUFFIX = "#ANSWERS"
@@ -134,7 +148,7 @@ class DynamoDBSessionRepository:
         variant: Variant,
         lifetime_days: int = DEFAULT_SESSION_LIFETIME_DAYS,
     ) -> SessionRecord:
-        token = secrets.token_urlsafe(TOKEN_BYTES)
+        token = new_token()
         now = datetime.now(UTC)
         expires_at = now + timedelta(days=lifetime_days)
         item: dict[str, Any] = {

@@ -107,3 +107,9 @@ def test_put_answers_twice_raises(repository: DynamoDBSessionRepository) -> None
 
     with pytest.raises(AnswersAlreadySubmittedError):
         repository.put_answers(record.token, {"team-structure": "second submit"})
+
+
+def test_new_token_never_starts_with_a_dash_or_underscore() -> None:
+    from twowaymirror.repository import new_token
+
+    assert all(new_token()[0].isalnum() for _ in range(500))
