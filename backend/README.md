@@ -37,6 +37,48 @@ curl http://127.0.0.1:8080/api/sessions/<token-from-seed.py>
 
 The frontend dev server proxies `/api` to `127.0.0.1:8080`.
 
+## CLI
+
+The `2wm` console script is the admin CLI: create and manage sessions, sync content, draft
+replies, and export answers. It reads the same environment variables as the API
+(`TWM_TABLE_NAME`, `TWM_TENANT`, `TWM_CONTENT_SOURCE`, `TWM_DYNAMODB_ENDPOINT`, `AWS_REGION`)
+plus `TWM_PUBLIC_BASE_URL` (default `http://localhost:5173`, used to build the session link).
+Run `uv run 2wm --help` or `uv run 2wm <command> --help` for full option lists.
+
+| Command | What |
+|---|---|
+| `2wm create --company TEXT --contact TEXT --variant TEXT [--days INT]` | Create a session, print its details and link. Exits 1 on an undeclared variant. |
+| `2wm list [--all]` | List sessions (token, company, contact, variant, created, expires, status, answers). Hides expired/revoked unless `--all`. |
+| `2wm revoke TOKEN` | Revoke a session. Idempotent; exits 1 on an unknown token. |
+| `2wm pull TOKEN [--out DIR]` | Export a session and its submitted answers to a YAML file. Exits 1 if answers are not yet submitted. See "CLI export schema" below. |
+| `2wm content push SOURCE_DIR --bucket NAME [--prefix P] [--prune]` | Upload a content directory to S3 with matching relative keys; `--prune` deletes remote keys no longer present locally. Refuses to run without a `variants.yaml` in `SOURCE_DIR`. |
+| `2wm content check SOURCE_DIR` | Load `SOURCE_DIR` through the content loader for every declared variant; reports OK or the first error. |
+
+### CLI export schema
+
+`2wm pull` writes `<out>/<company-slug>-<token-prefix>.yaml` (the token prefix is its first 8
+characters). This is the export contract for downstream tooling:
+
+```yaml
+session:
+  token: string
+  company: string
+  contact: string
+  variant: string
+  created_at: string    # ISO 8601
+  expires_at: string    # ISO 8601
+submitted_at: string     # ISO 8601
+answers:
+  - id: string
+    question: string
+    required: bool
+    answer: string | null   # null for an unanswered optional question
+```
+
+`answers` lists every company question as it read when the company submitted (a snapshot stored with the answers), in the order shown to them, including unanswered
+optional questions (`answer: null`); a required question is never null once answers exist,
+since the API rejects a submission missing one.
+
 ## Checks
 
 ```sh
@@ -58,4 +100,5 @@ uv run pytest --cov=twowaymirror --cov-report=term-missing --cov-fail-under=90
 | `src/twowaymirror/routes.py` | `GET /api/sessions/{token}`, `POST /api/sessions/{token}/answers` |
 | `src/twowaymirror/main.py` | FastAPI app factory, `/api/health` |
 | `src/twowaymirror/handler.py` | Lambda entry point (Mangum) |
+| `src/twowaymirror/cli.py` | `2wm` admin CLI: see "CLI" above |
 | `scripts/seed.py` | Local dev seed: create the table, one sample session |

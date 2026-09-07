@@ -6,7 +6,12 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from twowaymirror.content import ContentError, UnknownVariantError, declared_variants, load_content
+from twowaymirror.content import (
+    ContentError,
+    UnknownVariantError,
+    declared_variants,
+    load_content,
+)
 from twowaymirror.settings import Settings
 
 SAMPLE_CONTENT_DIR = Path(__file__).resolve().parents[2] / "content" / "sample"

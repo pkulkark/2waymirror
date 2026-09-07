@@ -19,9 +19,9 @@ CloudFront rewrites S3 403/404 to `/index.html` with status 200 so client-side r
 | Item | PK | SK | Attributes |
 |---|---|---|---|
 | Session | `TENANT#<tenant>` | `SESSION#<token>` | `company`, `contact`, `variant`, `created_at` (ISO 8601), `expires_at` (ISO 8601), `ttl` (epoch seconds, DynamoDB TTL attribute), `revoked` (bool) |
-| Answers | `TENANT#<tenant>` | `SESSION#<token>#ANSWERS` | `submitted_at`, `answers` (map of question id to string) |
+| Answers | `TENANT#<tenant>` | `SESSION#<token>#ANSWERS` | `submitted_at`, `answers` (map of question id to string), `questions` (snapshot of id, question, required as shown at submission), `ttl` (same value as the session's) |
 
-Tenant is `default` for now (ADR-0002). Sessions last 7 days by default; `expires_at` and `ttl` are set at creation and can be overridden per session. Tokens are 22 characters, URL-safe, generated with `secrets.token_urlsafe(16)`. Listing sessions is a query on PK with SK `begins_with SESSION#`.
+Tenant is `default` for now (ADR-0002). Sessions last 7 days by default. `expires_at` ends recruiter access and is checked in code. `ttl` is retention, set 180 days after `expires_at` on both the session and its answers, so a company's response outlives the link but the pair is deleted together. Exports use the question snapshot stored with the answers, never the current content. Tokens are 22 characters, URL-safe, generated with `secrets.token_urlsafe(16)`. Listing sessions is a query on PK with SK `begins_with SESSION#`.
 
 ## API
 
@@ -57,6 +57,10 @@ Variant merge rule: base value, then `variants.<variant>` overrides key by key. 
 - The dev server proxies `/api` to the local backend.
 - Routes: `/` landing, `/s/:token` session page, `/how-i-built-it`.
 - Session page states: loading skeleton, not found, expired, live, submitted.
+
+## Admin CLI
+
+Session creation and everything else the candidate does is a local command, `2wm`, installed with the backend package and run with the candidate's own AWS credentials. It never goes through the public API. Commands: `create`, `list`, `revoke`, `pull` (exports a company's answers as YAML), and `content push` / `content check` for the private content tree. Links are built from a configurable public base URL.
 
 ## Local development
 

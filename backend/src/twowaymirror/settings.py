@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     TWM_CONTENT_SOURCE: str = "../content/sample"
     TWM_DYNAMODB_ENDPOINT: str | None = None
     AWS_REGION: str = "ca-central-1"
+    TWM_PUBLIC_BASE_URL: str = "http://localhost:5173"
 
 
 def get_settings() -> Settings:

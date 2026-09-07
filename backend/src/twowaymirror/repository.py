@@ -16,11 +16,30 @@ import boto3
 from botocore.exceptions import ClientError
 from pydantic import BaseModel
 
-from twowaymirror.models import Answers, Session, Variant
+from twowaymirror.models import Answers, QuestionSnapshot, Session, Variant
 from twowaymirror.settings import Settings
 
 TOKEN_BYTES = 16
+
+
+def new_token() -> str:
+    """URL-safe session token that never starts with '-' or '_'.
+
+    token_urlsafe can begin with either, and a leading '-' makes the token look like a
+    command-line option to any CLI it is passed to.
+    """
+    while True:
+        token = secrets.token_urlsafe(TOKEN_BYTES)
+        if token[0].isalnum():
+            return token
+
+
 DEFAULT_SESSION_LIFETIME_DAYS = 7
+
+# expires_at ends recruiter access and is checked in code. ttl is retention: DynamoDB deletes
+# the session and its answers this long after expiry, so a company's response outlives the
+# link by a comfortable margin but does not linger forever.
+RETENTION_DAYS_AFTER_EXPIRY = 180
 
 _ANSWERS_SK_SUFFIX = "#ANSWERS"
 
@@ -134,7 +153,7 @@ class DynamoDBSessionRepository:
         variant: Variant,
         lifetime_days: int = DEFAULT_SESSION_LIFETIME_DAYS,
     ) -> SessionRecord:
-        token = secrets.token_urlsafe(TOKEN_BYTES)
+        token = new_token()
         now = datetime.now(UTC)
         expires_at = now + timedelta(days=lifetime_days)
         item: dict[str, Any] = {
@@ -145,7 +164,7 @@ class DynamoDBSessionRepository:
             "variant": variant,
             "created_at": now.isoformat(),
             "expires_at": expires_at.isoformat(),
-            "ttl": int(expires_at.timestamp()),
+            "ttl": int((expires_at + timedelta(days=RETENTION_DAYS_AFTER_EXPIRY)).timestamp()),
             "revoked": False,
         }
         self._table.put_item(Item=item)
@@ -190,24 +209,43 @@ class DynamoDBSessionRepository:
         item: dict[str, Any] | None = response.get("Item")
         if item is None:
             return None
-        return Answers(submitted_at=item["submitted_at"], answers=dict(item["answers"]))
+        return Answers(
+            submitted_at=item["submitted_at"],
+            answers=dict(item["answers"]),
+            questions=[QuestionSnapshot(**q) for q in item.get("questions", [])],
+        )
 
-    def put_answers(self, token: str, answers: dict[str, str]) -> Answers:
-        """Conditional put: raises AnswersAlreadySubmittedError on a second submit."""
+    def put_answers(
+        self,
+        token: str,
+        answers: dict[str, str],
+        *,
+        questions: list[QuestionSnapshot] | None = None,
+        ttl: int | None = None,
+    ) -> Answers:
+        """Conditional put: raises AnswersAlreadySubmittedError on a second submit.
+
+        `questions` is the snapshot of the company questions as the company saw them.
+        `ttl` should be the session's ttl so the two items are retained together.
+        """
         now = datetime.now(UTC)
+        snapshot = questions or []
         item: dict[str, Any] = {
             "PK": self._pk(),
             "SK": self._answers_sk(token),
             "submitted_at": now.isoformat(),
             "answers": answers,
+            "questions": [q.model_dump() for q in snapshot],
         }
+        if ttl is not None:
+            item["ttl"] = ttl
         try:
             self._table.put_item(Item=item, ConditionExpression="attribute_not_exists(PK)")
         except ClientError as exc:
             if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
                 raise AnswersAlreadySubmittedError(token) from exc
             raise
-        return Answers(submitted_at=now, answers=answers)
+        return Answers(submitted_at=now, answers=answers, questions=snapshot)
 
 
 def _session_record_from_item(token: str, item: dict[str, Any]) -> SessionRecord:

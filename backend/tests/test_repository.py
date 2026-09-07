@@ -107,3 +107,31 @@ def test_put_answers_twice_raises(repository: DynamoDBSessionRepository) -> None
 
     with pytest.raises(AnswersAlreadySubmittedError):
         repository.put_answers(record.token, {"team-structure": "second submit"})
+
+
+def test_new_token_never_starts_with_a_dash_or_underscore() -> None:
+    from twowaymirror.repository import new_token
+
+    assert all(new_token()[0].isalnum() for _ in range(500))
+
+
+def test_retention_outlives_access_and_covers_the_answers(
+    repository: DynamoDBSessionRepository,
+) -> None:
+    """Regression: the answers must not be stranded when the link expires."""
+    from datetime import timedelta
+
+    from twowaymirror.repository import RETENTION_DAYS_AFTER_EXPIRY
+
+    record = repository.create_session(company="A", contact="a", variant="senior")
+    expected_ttl = int(
+        (record.expires_at + timedelta(days=RETENTION_DAYS_AFTER_EXPIRY)).timestamp()
+    )
+    assert record.ttl == expected_ttl
+    assert RETENTION_DAYS_AFTER_EXPIRY == 180
+
+    repository.put_answers(record.token, {"q": "a"}, ttl=record.ttl)
+    item = repository._table.get_item(
+        Key={"PK": "TENANT#default", "SK": f"SESSION#{record.token}#ANSWERS"}
+    )["Item"]
+    assert int(item["ttl"]) == record.ttl
