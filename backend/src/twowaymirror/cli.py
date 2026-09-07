@@ -24,7 +24,6 @@ from twowaymirror.content import (
     ContentError,
     declared_variants,
     load_content,
-    load_email_reply_template,
 )
 from twowaymirror.repository import (
     DEFAULT_SESSION_LIFETIME_DAYS,
@@ -151,29 +150,6 @@ def revoke(token: Annotated[str, typer.Argument(help="Session token to revoke.")
 
     repository.revoke_session(token)
     typer.echo(f"revoked session for {record.company} ({token})")
-
-
-@app.command("draft-reply")
-def draft_reply(token: Annotated[str, typer.Argument(help="Session token to reply to.")]) -> None:
-    """Print an email reply body for a session. Never sends anything."""
-    settings = get_settings()
-    repository = DynamoDBSessionRepository(settings)
-    record = repository.get_session(token)
-    if record is None:
-        raise _fail(f"unknown session token {token!r}")
-
-    try:
-        template = load_email_reply_template(settings)
-    except ContentError as exc:
-        raise _fail(str(exc)) from exc
-
-    body = template.format(
-        contact=record.contact,
-        company=record.company,
-        link=f"{settings.TWM_PUBLIC_BASE_URL}/s/{token}",
-        expires=record.expires_at.isoformat(),
-    )
-    typer.echo(body)
 
 
 @app.command()

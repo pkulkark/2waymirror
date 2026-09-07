@@ -50,7 +50,6 @@ Run `uv run 2wm --help` or `uv run 2wm <command> --help` for full option lists.
 | `2wm create --company TEXT --contact TEXT --variant TEXT [--days INT]` | Create a session, print its details and link. Exits 1 on an undeclared variant. |
 | `2wm list [--all]` | List sessions (token, company, contact, variant, created, expires, status, answers). Hides expired/revoked unless `--all`. |
 | `2wm revoke TOKEN` | Revoke a session. Idempotent; exits 1 on an unknown token. |
-| `2wm draft-reply TOKEN` | Print an email reply body rendered from the content's `email_reply.md`. Never sends anything. |
 | `2wm pull TOKEN [--out DIR]` | Export a session and its submitted answers to a YAML file. Exits 1 if answers are not yet submitted. See "CLI export schema" below. |
 | `2wm content push SOURCE_DIR --bucket NAME [--prefix P] [--prune]` | Upload a content directory to S3 with matching relative keys; `--prune` deletes remote keys no longer present locally. Refuses to run without a `variants.yaml` in `SOURCE_DIR`. |
 | `2wm content check SOURCE_DIR` | Load `SOURCE_DIR` through the content loader for every declared variant; reports OK or the first error. |

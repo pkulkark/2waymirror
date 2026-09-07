@@ -11,7 +11,6 @@ from twowaymirror.content import (
     UnknownVariantError,
     declared_variants,
     load_content,
-    load_email_reply_template,
 )
 from twowaymirror.settings import Settings
 
@@ -116,24 +115,3 @@ def test_declared_variants_come_from_content(settings: Settings) -> None:
 def test_load_content_unknown_variant_raises(settings: Settings) -> None:
     with pytest.raises(UnknownVariantError):
         load_content(settings, variant="cto")
-
-
-def test_load_email_reply_template_reads_the_file(settings: Settings) -> None:
-    template = load_email_reply_template(settings)
-    assert "{contact}" in template
-    assert "{company}" in template
-    assert "{link}" in template
-
-
-def test_load_email_reply_template_missing_file_raises(tmp_path: Path, settings: Settings) -> None:
-    content_without_template = tmp_path / "content"
-    content_without_template.mkdir()
-    broken_settings = Settings(
-        TWM_TABLE_NAME=settings.TWM_TABLE_NAME,
-        TWM_TENANT=settings.TWM_TENANT,
-        TWM_CONTENT_SOURCE=str(content_without_template),
-        AWS_REGION=settings.AWS_REGION,
-    )
-
-    with pytest.raises(ContentError):
-        load_email_reply_template(broken_settings)

@@ -181,51 +181,6 @@ def test_revoke_unknown_token_exits_nonzero(
     assert "unknown session token" in result.output
 
 
-def test_draft_reply_success(cli: tuple[CliRunner, DynamoDBSessionRepository]) -> None:
-    runner, repository = cli
-    record = repository.create_session(company="Acme Robotics", contact="Sam", variant="senior")
-
-    result = runner.invoke(app, ["draft-reply", record.token])
-
-    assert result.exit_code == 0
-    assert "Sam" in result.output
-    assert "Acme Robotics" in result.output
-    assert f"http://localhost:5173/s/{record.token}" in result.output
-    assert "—" not in result.output  # no em-dashes
-
-
-def test_draft_reply_unknown_token_exits_nonzero(
-    cli: tuple[CliRunner, DynamoDBSessionRepository],
-) -> None:
-    runner, _repository = cli
-
-    result = runner.invoke(app, ["draft-reply", "does-not-exist"])
-
-    assert result.exit_code == 1
-    assert "unknown session token" in result.output
-
-
-def test_draft_reply_missing_template_is_content_error(
-    cli: tuple[CliRunner, DynamoDBSessionRepository],
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    runner, repository = cli
-    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
-
-    content_without_template = tmp_path / "content"
-    content_without_template.mkdir()
-    for item in SAMPLE_CONTENT_DIR.iterdir():
-        if item.name != "email_reply.md":
-            (content_without_template / item.name).symlink_to(item)
-    monkeypatch.setenv("TWM_CONTENT_SOURCE", str(content_without_template))
-
-    result = runner.invoke(app, ["draft-reply", record.token])
-
-    assert result.exit_code == 1
-    assert "email_reply.md" in result.output
-
-
 def test_pull_writes_expected_schema(
     cli: tuple[CliRunner, DynamoDBSessionRepository], tmp_path: Path
 ) -> None:

@@ -43,7 +43,6 @@ Directory layout, identical whether the source is a local directory or an S3 pre
 
 ```
 profile.yaml                # name, headline, links, location
-email_reply.md              # reply email template with {contact}, {company}, {link}, {expires} placeholders
 logistics.yaml              # base facts; may contain per-variant overrides under `variants:`
 company_questions.yaml      # list; each may carry `variants:` to restrict which variants ask it
 sections/<section>.yaml     # id, title, ordered list of answer ids
@@ -61,7 +60,7 @@ Variant merge rule: base value, then `variants.<variant>` overrides key by key. 
 
 ## Admin CLI
 
-Session creation and everything else the candidate does is a local command, `2wm`, installed with the backend package and run with the candidate's own AWS credentials. It never goes through the public API. Commands: `create`, `list`, `revoke`, `draft-reply` (prints the email, never sends), `pull` (exports a company's answers as YAML), and `content push` / `content check` for the private content tree. Links are built from a configurable public base URL.
+Session creation and everything else the candidate does is a local command, `2wm`, installed with the backend package and run with the candidate's own AWS credentials. It never goes through the public API. Commands: `create`, `list`, `revoke`, `pull` (exports a company's answers as YAML), and `content push` / `content check` for the private content tree. Links are built from a configurable public base URL.
 
 ## Local development
 
