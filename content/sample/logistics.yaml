@@ -1,11 +1,18 @@
-availability: One month notice at current role
-compensation: EUR 70,000 to 85,000 base, open to discussing total comp
-work_authorization: EU citizen, no sponsorship required
-location_preference: Remote within the EU, or hybrid in Lisbon
-notice_period: 1 month
-variants:
-  principal:
-    compensation: EUR 85,000 to 100,000 base, open to discussing total comp
-  manager:
-    compensation: EUR 90,000 to 110,000 base plus people-management scope
-    notice_period: 2 months
+- label: Availability
+  value: One month notice at current role
+- label: Compensation
+  value: EUR 70,000 to 85,000 base, open to discussing total comp
+  variants:
+    principal:
+      value: EUR 85,000 to 100,000 base, open to discussing total comp
+    manager:
+      value: EUR 90,000 to 110,000 base plus people-management scope
+- label: Work authorization
+  value: EU citizen, no sponsorship required
+- label: Location preference
+  value: Remote within the EU, or hybrid in Lisbon
+- label: Notice period
+  value: 1 month
+  variants:
+    manager:
+      value: 2 months
