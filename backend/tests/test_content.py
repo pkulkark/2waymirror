@@ -144,3 +144,33 @@ def test_declared_variants_come_from_content(settings: Settings) -> None:
 def test_load_content_unknown_variant_raises(settings: Settings) -> None:
     with pytest.raises(UnknownVariantError):
         load_content(settings, variant="cto")
+
+
+def test_cache_rereads_after_max_age(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    import shutil
+
+    from twowaymirror import content as content_module
+
+    source = tmp_path / "content"
+    shutil.copytree(SAMPLE_CONTENT_DIR, source)
+    monkeypatch.setenv("TWM_CONTENT_SOURCE", str(source))
+    monkeypatch.setenv("TWM_CONTENT_CACHE_SECONDS", "300")
+    fresh = Settings(_env_file=None)
+    content_module.clear_cache()
+
+    clock = {"now": 1000.0}
+    monkeypatch.setattr(content_module, "_now", lambda: clock["now"])
+
+    assert load_content(fresh, variant="senior").candidate["name"] == "Jordan Sample"
+
+    profile = source / "profile.yaml"
+    profile.write_text(profile.read_text().replace("Jordan Sample", "Jordan Updated"))
+
+    clock["now"] += 299
+    assert load_content(fresh, variant="senior").candidate["name"] == "Jordan Sample"
+
+    clock["now"] += 2
+    assert load_content(fresh, variant="senior").candidate["name"] == "Jordan Updated"
+    content_module.clear_cache()

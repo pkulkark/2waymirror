@@ -11,6 +11,7 @@ the I/O once; the (cheap, in-memory) variant merge runs on every call.
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urlparse
@@ -220,17 +221,28 @@ def _resolve(raw: _RawContent, variant: Variant) -> Content:
     )
 
 
-_raw_content_cache: dict[str, _RawContent] = {}
+_raw_content_cache: dict[str, tuple[float, _RawContent]] = {}
+_now = time.monotonic
 
 
-def _get_raw_content(source: str, region: str) -> _RawContent:
-    if source not in _raw_content_cache:
-        _raw_content_cache[source] = _load_raw(_make_source(source, region))
-    return _raw_content_cache[source]
+def _get_raw_content(source: str, region: str, max_age_seconds: int) -> _RawContent:
+    """The raw tree for `source`, re-read once the cached copy is older than `max_age_seconds`.
+
+    A warm Lambda instance keeps its module state between invocations, so without an expiry a
+    content push would only show up after the instance was recycled.
+    """
+    cached = _raw_content_cache.get(source)
+    if cached is not None and _now() - cached[0] < max_age_seconds:
+        return cached[1]
+    raw = _load_raw(_make_source(source, region))
+    _raw_content_cache[source] = (_now(), raw)
+    return raw
 
 
 def load_content(settings: Settings, *, variant: Variant) -> Content:
-    raw = _get_raw_content(settings.TWM_CONTENT_SOURCE, settings.AWS_REGION)
+    raw = _get_raw_content(
+        settings.TWM_CONTENT_SOURCE, settings.AWS_REGION, settings.TWM_CONTENT_CACHE_SECONDS
+    )
     if variant not in raw.variants:
         raise UnknownVariantError(variant)
     return _resolve(raw, variant)
@@ -238,7 +250,10 @@ def load_content(settings: Settings, *, variant: Variant) -> Content:
 
 def declared_variants(settings: Settings) -> list[str]:
     """Variant ids the loaded content declares, in declaration order."""
-    return list(_get_raw_content(settings.TWM_CONTENT_SOURCE, settings.AWS_REGION).variants)
+    raw = _get_raw_content(
+        settings.TWM_CONTENT_SOURCE, settings.AWS_REGION, settings.TWM_CONTENT_CACHE_SECONDS
+    )
+    return list(raw.variants)
 
 
 def clear_cache() -> None:

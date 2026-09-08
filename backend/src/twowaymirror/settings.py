@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     TWM_DYNAMODB_ENDPOINT: str | None = None
     AWS_REGION: str = "ca-central-1"
     TWM_PUBLIC_BASE_URL: str = "http://localhost:5173"
+    # How long a loaded content tree is served before it is re-read from the source. Lets a
+    # content push show up on warm Lambda instances without a redeploy.
+    TWM_CONTENT_CACHE_SECONDS: int = 300
 
 
 def get_settings() -> Settings:

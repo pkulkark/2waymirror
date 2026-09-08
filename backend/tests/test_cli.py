@@ -484,3 +484,40 @@ def test_pull_warns_and_uses_current_content_for_old_submissions(
 
     assert result.exit_code == 0
     assert "predates question snapshots" in result.output
+
+
+def test_content_push_skips_hidden_and_non_content_files(
+    tmp_path: Path, aws_credentials: None
+) -> None:
+    import shutil
+
+    source = tmp_path / "content"
+    shutil.copytree(SAMPLE_CONTENT_DIR, source)
+    (source / ".git").mkdir()
+    (source / ".git" / "HEAD").write_text("ref: refs/heads/main\n")
+    (source / ".gitignore").write_text(".DS_Store\n")
+    (source / "README.md").write_text("private\n")
+    (source / "templates").mkdir()
+    (source / "templates" / "reply_email.md").write_text("hi\n")
+
+    with mock_aws():
+        client = boto3.client("s3", region_name="ca-central-1")
+        client.create_bucket(
+            Bucket="twm-content-test",
+            CreateBucketConfiguration={"LocationConstraint": "ca-central-1"},
+        )
+
+        result = CliRunner().invoke(
+            app, ["content", "push", str(source), "--bucket", "twm-content-test"]
+        )
+
+        assert result.exit_code == 0, result.output
+        keys = {obj["Key"] for obj in client.list_objects_v2(Bucket="twm-content-test")["Contents"]}
+
+    content_count = sum(1 for path in SAMPLE_CONTENT_DIR.rglob("*") if path.is_file())
+    assert len(keys) == content_count
+    assert not any(key.startswith(".") or "/." in key for key in keys)
+    assert "README.md" not in keys
+    assert "templates/reply_email.md" not in keys
+    assert "skipping .git/HEAD" in result.output
+    assert "skipping templates/reply_email.md" in result.output
