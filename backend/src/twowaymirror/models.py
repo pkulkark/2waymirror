@@ -10,17 +10,20 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
 # Variant ids are declared by the content (variants.yaml), never by code.
 Variant = str
 
+EvidenceType = Literal["repo", "pr", "talk", "writeup", "other"]
+
 
 class Evidence(BaseModel):
     label: str
     url: str
+    type: EvidenceType | None = None
 
 
 class Session(BaseModel):
@@ -88,6 +91,7 @@ class SubmitAnswersResponse(BaseModel):
 class SectionItem(BaseModel):
     id: str
     question: str
+    summary: str | None = None
     answer_md: str
     evidence: list[Evidence] = []
 
@@ -104,11 +108,16 @@ class CompanyQuestion(BaseModel):
     required: bool
 
 
+class LogisticsItem(BaseModel):
+    label: str
+    value: str
+
+
 class Content(BaseModel):
     """Content as returned, already merged for the session's variant."""
 
     candidate: dict[str, Any]
-    logistics: dict[str, Any]
+    logistics: list[LogisticsItem]
     sections: list[Section]
     company_questions: list[CompanyQuestion]
 

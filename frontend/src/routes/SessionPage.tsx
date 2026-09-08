@@ -7,6 +7,8 @@ import {
   submitAnswers,
   type CompanyQuestion,
   type Content,
+  type Evidence,
+  type Logistics,
   type Session,
 } from '@/api'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -73,22 +75,27 @@ function ErrorState({ detail }: { detail: string }) {
   )
 }
 
-function Logistics({ logistics }: { logistics: Record<string, string> }) {
-  const entries = Object.entries(logistics).filter(([key]) => key !== 'variants')
-  if (entries.length === 0) return null
+function LogisticsList({ logistics }: { logistics: Logistics }) {
+  if (logistics.length === 0) return null
 
   return (
     <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-      {entries.map(([key, value]) => (
-        <div key={key} className="flex flex-col">
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">
-            {key.replace(/_/g, ' ')}
-          </dt>
-          <dd className="text-sm">{value}</dd>
+      {logistics.map((item) => (
+        <div key={item.label} className="flex flex-col">
+          <dt className="text-muted-foreground text-xs tracking-wide uppercase">{item.label}</dt>
+          <dd className="text-sm">{item.value}</dd>
         </div>
       ))}
     </dl>
   )
+}
+
+const EVIDENCE_TYPE_LABELS: Record<NonNullable<Evidence['type']>, string> = {
+  repo: 'Repo',
+  pr: 'PR',
+  talk: 'Talk',
+  writeup: 'Writeup',
+  other: 'Other',
 }
 
 function CandidateHeader({ content }: { content: Content }) {
@@ -112,6 +119,9 @@ function AnswerSections({ sections }: { sections: Content['sections'] }) {
             {section.items.map((item) => (
               <div key={item.id}>
                 <h3 className="font-medium">{item.question}</h3>
+                {item.summary && (
+                  <p className="text-muted-foreground mt-1 text-sm">{item.summary}</p>
+                )}
                 <div className="prose prose-sm mt-2 max-w-none text-sm leading-relaxed">
                   <ReactMarkdown>{item.answer_md}</ReactMarkdown>
                 </div>
@@ -125,6 +135,11 @@ function AnswerSections({ sections }: { sections: Content['sections'] }) {
                           rel="noreferrer"
                           className="text-primary text-xs underline underline-offset-2"
                         >
+                          {ev.type && (
+                            <span className="text-muted-foreground">
+                              {EVIDENCE_TYPE_LABELS[ev.type]}:{' '}
+                            </span>
+                          )}
                           {ev.label}
                         </a>
                       </li>
@@ -304,7 +319,7 @@ export default function SessionPage() {
           <CardTitle>Logistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <Logistics logistics={content.logistics} />
+          <LogisticsList logistics={content.logistics} />
         </CardContent>
       </Card>
 

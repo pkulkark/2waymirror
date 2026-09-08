@@ -18,9 +18,12 @@ export interface Session {
   answers_submitted: boolean
 }
 
+export type EvidenceType = 'repo' | 'pr' | 'talk' | 'writeup' | 'other'
+
 export interface Evidence {
   label: string
   url: string
+  type?: EvidenceType
 }
 
 export interface CandidateLink {
@@ -36,11 +39,17 @@ export interface Candidate {
   [key: string]: unknown
 }
 
-export type Logistics = Record<string, string>
+export interface LogisticsItem {
+  label: string
+  value: string
+}
+
+export type Logistics = LogisticsItem[]
 
 export interface SectionItem {
   id: string
   question: string
+  summary?: string
   answer_md: string
   evidence: Evidence[]
 }

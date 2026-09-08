@@ -3,6 +3,7 @@ question: What kind of team and manager do you work best with?
 evidence:
   - label: Blog post on async-first team norms
     url: https://example.com/blog/async-first-teams
+    type: writeup
 variants:
   manager:
     question: What kind of team do you want to build, and how do you support the managers under you?

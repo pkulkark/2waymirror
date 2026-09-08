@@ -19,7 +19,15 @@ import boto3
 import yaml
 from pydantic import BaseModel
 
-from twowaymirror.models import CompanyQuestion, Content, Evidence, Section, SectionItem, Variant
+from twowaymirror.models import (
+    CompanyQuestion,
+    Content,
+    Evidence,
+    LogisticsItem,
+    Section,
+    SectionItem,
+    Variant,
+)
 from twowaymirror.settings import Settings
 
 _SECTIONS_DIR = "sections"
@@ -39,7 +47,7 @@ class _RawContent(BaseModel):
 
     variants: list[str]
     profile: dict[str, Any]
-    logistics: dict[str, Any]
+    logistics: list[dict[str, Any]]
     company_questions: list[dict[str, Any]]
     sections: list[dict[str, Any]]
     answer_front_matter: dict[str, dict[str, Any]]
@@ -128,7 +136,7 @@ def _load_raw(source: _ContentSource) -> _RawContent:
     if not variants:
         raise ContentError("variants.yaml must declare at least one variant id")
     profile = yaml.safe_load(source.read_text("profile.yaml")) or {}
-    logistics = yaml.safe_load(source.read_text("logistics.yaml")) or {}
+    logistics = yaml.safe_load(source.read_text("logistics.yaml")) or []
     company_questions = yaml.safe_load(source.read_text("company_questions.yaml")) or []
 
     # list_dir returns sorted file names, so section order follows file naming
@@ -176,7 +184,7 @@ def _visible_for_variant(question: dict[str, Any], variant: str) -> bool:
 
 def _resolve(raw: _RawContent, variant: Variant) -> Content:
     candidate = _merge_overrides(raw.profile, variant)
-    logistics = _merge_overrides(raw.logistics, variant)
+    logistics = [LogisticsItem(**_merge_overrides(item, variant)) for item in raw.logistics]
 
     company_questions = [
         CompanyQuestion(
@@ -197,6 +205,7 @@ def _resolve(raw: _RawContent, variant: Variant) -> Content:
                 SectionItem(
                     id=answer_id,
                     question=merged["question"],
+                    summary=merged.get("summary"),
                     answer_md=raw.answer_bodies[answer_id],
                     evidence=[Evidence(**item) for item in merged.get("evidence", [])],
                 )
