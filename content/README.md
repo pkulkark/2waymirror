@@ -8,7 +8,8 @@ themselves are declared by the content, not by code.
 **This directory contains only a fictional sample candidate.** It exists so the app runs end to
 end locally, in tests, and in a fresh fork. The real candidate's content is kept in a separate
 private repository and deployed to a private S3 bucket, which the backend reads at cold start and
-caches in memory. Content updates are an S3 sync and do not require a backend deploy.
+caches in memory for a short, configurable interval (five minutes by default). Content updates are
+an S3 sync and do not require a backend deploy; they show up once the interval passes.
 
 Content is served only against a valid session token and is never bundled into the frontend.
 

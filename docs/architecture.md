@@ -49,7 +49,7 @@ sections/<section>.yaml     # id, title, ordered list of answer ids
 answers/<id>.md             # YAML front matter: question, summary (optional one-line lead), evidence (list of label, url, and an optional type of repo/pr/talk/writeup/other), variants (optional emphasis overrides); body is the answer in Markdown
 ```
 
-Variant merge rule: base value, then `variants.<variant>` overrides key by key. For `logistics.yaml`, this runs per list item, so an item's `variants` map only overrides that item's own fields. Loaded once at cold start and cached in memory. The public repo ships `content/sample/` (a fictional candidate). Real content lives elsewhere (ADR-0007).
+Variant merge rule: base value, then `variants.<variant>` overrides key by key. For `logistics.yaml`, this runs per list item, so an item's `variants` map only overrides that item's own fields. Loaded at cold start and cached in memory; re-read once the cached copy is older than a configurable interval (five minutes by default), so a content push reaches warm instances without a redeploy. The public repo ships `content/sample/` (a fictional candidate). Real content lives elsewhere (ADR-0007).
 
 ## Frontend
 

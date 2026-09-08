@@ -209,12 +209,34 @@ def pull(
     typer.echo(str(path))
 
 
-def _local_content_files(source_dir: Path) -> dict[str, Path]:
-    return {
-        path.relative_to(source_dir).as_posix(): path
-        for path in sorted(source_dir.rglob("*"))
-        if path.is_file()
-    }
+CONTENT_FILES = ("variants.yaml", "profile.yaml", "logistics.yaml", "company_questions.yaml")
+CONTENT_DIRS = ("sections", "answers")
+
+
+def _is_content_path(relpath: str) -> bool:
+    """Only the files the loader reads are content. Everything else in a checkout (a `.git`
+    directory, a README, templates) stays local."""
+    parts = relpath.split("/")
+    if any(part.startswith(".") for part in parts):
+        return False
+    if len(parts) == 1:
+        return parts[0] in CONTENT_FILES
+    return len(parts) == 2 and parts[0] in CONTENT_DIRS
+
+
+def _local_content_files(source_dir: Path) -> tuple[dict[str, Path], list[str]]:
+    """(content files by relative path, relative paths that were skipped)."""
+    files: dict[str, Path] = {}
+    skipped: list[str] = []
+    for path in sorted(source_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        relpath = path.relative_to(source_dir).as_posix()
+        if _is_content_path(relpath):
+            files[relpath] = path
+        else:
+            skipped.append(relpath)
+    return files, skipped
 
 
 def _remote_keys(client: Any, bucket: str, prefix: str) -> set[str]:
@@ -241,7 +263,8 @@ def content_push(
         ),
     ] = False,
 ) -> None:
-    """Upload every file under SOURCE_DIR to s3://bucket/prefix with matching relative keys."""
+    """Upload the content files under SOURCE_DIR to s3://bucket/prefix with matching relative
+    keys. Hidden files and anything outside the content layout are skipped."""
     if not (source_dir / "variants.yaml").is_file():
         raise _fail(f"{source_dir} does not look like a content directory (missing variants.yaml)")
 
@@ -249,7 +272,9 @@ def content_push(
     client: Any = boto3.client("s3", region_name=settings.AWS_REGION)
     clean_prefix = prefix.strip("/")
 
-    local_files = _local_content_files(source_dir)
+    local_files, skipped = _local_content_files(source_dir)
+    for relpath in skipped:
+        typer.echo(f"skipping {relpath}", err=True)
     keys_by_relpath = {
         relpath: f"{clean_prefix}/{relpath}" if clean_prefix else relpath for relpath in local_files
     }
