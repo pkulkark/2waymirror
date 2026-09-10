@@ -70,6 +70,7 @@ class SessionRecord(BaseModel):
             answers_submitted=answers is not None,
             submitted_at=answers.submitted_at if answers else None,
             answers=answers.answers if answers else None,
+            questions=answers.questions if answers else None,
         )
 
 

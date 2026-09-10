@@ -248,6 +248,18 @@ def load_content(settings: Settings, *, variant: Variant) -> Content:
     return _resolve(raw, variant)
 
 
+def load_candidate_profile(settings: Settings, *, variant: Variant) -> dict[str, Any]:
+    """The candidate profile merged for `variant`, read on its own.
+
+    Used where only the profile is needed and the rest of the tree must not matter, such as
+    the contact offered on an expired link. Reads profile.yaml directly rather than the whole
+    tree, so a broken answer file cannot take the contact down with it.
+    """
+    source = _make_source(settings.TWM_CONTENT_SOURCE, settings.AWS_REGION)
+    profile = yaml.safe_load(source.read_text("profile.yaml")) or {}
+    return _merge_overrides(profile, variant)
+
+
 def declared_variants(settings: Settings) -> list[str]:
     """Variant ids the loaded content declares, in declaration order."""
     raw = _get_raw_content(

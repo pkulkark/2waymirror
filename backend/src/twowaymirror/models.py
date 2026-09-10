@@ -26,6 +26,15 @@ class Evidence(BaseModel):
     type: EvidenceType | None = None
 
 
+class QuestionSnapshot(BaseModel):
+    """A company question as it read at submission time, stored with the answers so that
+    later edits to the content cannot change what an answer was a response to."""
+
+    id: str
+    question: str
+    required: bool
+
+
 class Session(BaseModel):
     """Session as returned by the API. Never carries tenant, ttl, or revoked."""
 
@@ -37,15 +46,7 @@ class Session(BaseModel):
     answers_submitted: bool
     submitted_at: datetime | None = None
     answers: dict[str, str] | None = None
-
-
-class QuestionSnapshot(BaseModel):
-    """A company question as it read at submission time, stored with the answers so that
-    later edits to the content cannot change what an answer was a response to."""
-
-    id: str
-    question: str
-    required: bool
+    questions: list[QuestionSnapshot] | None = None
 
 
 class Answers(BaseModel):

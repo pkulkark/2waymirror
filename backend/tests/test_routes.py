@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -64,6 +65,23 @@ def test_get_session_reflects_submitted_answers(
     assert session["answers_submitted"] is True
     assert session["answers"] == {"team-structure": "We work in small squads."}
     assert session["submitted_at"] is not None
+    assert session["questions"] == []
+
+
+def test_get_session_returns_the_question_snapshot_as_answered(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+) -> None:
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    answers = _required_answers(client, record.token)
+    client.post(f"/api/sessions/{record.token}/answers", json={"answers": answers})
+
+    session = client.get(f"/api/sessions/{record.token}").json()["session"]
+
+    snapshot = {q["id"]: q for q in session["questions"]}
+    assert set(answers) <= set(snapshot)
+    assert all(q["required"] for q in snapshot.values() if q["id"] in answers)
+    assert all(q["question"] for q in snapshot.values())
 
 
 def test_get_session_unknown_token_is_404(
@@ -102,12 +120,46 @@ def test_get_session_revoked_is_410(api: tuple[TestClient, DynamoDBSessionReposi
     assert response.json()["candidate"]["email"] == "jordan@example.com"
 
 
-def test_get_session_gone_with_undeclared_variant_has_no_candidate(
+def test_get_session_gone_with_undeclared_variant_still_has_the_profile(
     api: tuple[TestClient, DynamoDBSessionRepository],
 ) -> None:
     client, repository = api
     record = repository.create_session(company="Acme", contact="Sam", variant="nope")
     repository.revoke_session(record.token)
+
+    response = client.get(f"/api/sessions/{record.token}")
+
+    assert response.status_code == 410
+    assert response.json()["candidate"] == {"name": "Jordan Sample", "email": "jordan@example.com"}
+
+
+def test_get_session_gone_survives_a_broken_content_tree(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The 410 must not depend on anything but profile.yaml being readable."""
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    repository.revoke_session(record.token)
+    (tmp_path / "profile.yaml").write_text("name: Only Profile\nemail: only@example.com\n")
+    monkeypatch.setenv("TWM_CONTENT_SOURCE", str(tmp_path))
+
+    response = client.get(f"/api/sessions/{record.token}")
+
+    assert response.status_code == 410
+    assert response.json()["candidate"] == {"name": "Only Profile", "email": "only@example.com"}
+
+
+def test_get_session_gone_with_unreadable_profile_has_no_candidate(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    repository.revoke_session(record.token)
+    monkeypatch.setenv("TWM_CONTENT_SOURCE", str(tmp_path))
 
     response = client.get(f"/api/sessions/{record.token}")
 

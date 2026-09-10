@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
-from twowaymirror.content import UnknownVariantError, load_content
+from twowaymirror.content import UnknownVariantError, load_candidate_profile, load_content
 from twowaymirror.models import (
     AnswersSubmitRequest,
     Content,
@@ -17,6 +18,8 @@ from twowaymirror.models import (
 )
 from twowaymirror.repository import DynamoDBSessionRepository, SessionRecord
 from twowaymirror.settings import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
@@ -42,13 +45,12 @@ class SessionGoneError(Exception):
 
 def session_gone_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, SessionGoneError)
-    settings = get_settings()
     candidate: dict[str, str | None] = {"name": None, "email": None}
     try:
-        profile = load_content(settings, variant=exc.record.variant).candidate
+        profile = load_candidate_profile(get_settings(), variant=exc.record.variant)
         candidate = {"name": profile.get("name"), "email": profile.get("email")}
-    except UnknownVariantError:
-        pass
+    except Exception:
+        logger.exception("Could not load the candidate profile for an expired session")
     return JSONResponse(
         status_code=status.HTTP_410_GONE,
         content={

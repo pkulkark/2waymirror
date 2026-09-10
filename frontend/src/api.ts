@@ -18,6 +18,7 @@ export interface Session {
   answers_submitted: boolean
   submitted_at?: string | null
   answers?: Record<string, string> | null
+  questions?: CompanyQuestion[] | null
 }
 
 export type EvidenceType = 'repo' | 'pr' | 'talk' | 'writeup' | 'other'
