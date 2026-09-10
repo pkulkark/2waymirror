@@ -10,7 +10,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/how-i-built-it" element={<HowIBuiltIt />} />
-        <Route path="/s/:token" element={<SessionPage />} />
+        {/* One route for every tab: the optional section keeps SessionPage mounted, and its
+            fetch to one call per token, when the visitor moves between tabs. */}
+        <Route path="/s/:token/:section?" element={<SessionPage />} />
       </Routes>
     </BrowserRouter>
   )

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import SessionPage from '@/routes/SessionPage'
@@ -76,14 +76,26 @@ function jsonResponse(status: number, body: unknown): Response {
   } as Response
 }
 
-function renderAt(token: string) {
+/** Reports the current URL so a test can assert a redirect. */
+function LocationProbe() {
+  const { pathname } = useLocation()
+  return <span data-testid="pathname">{pathname}</span>
+}
+
+function renderAt(token: string, section?: string) {
   return render(
-    <MemoryRouter initialEntries={[`/s/${token}`]}>
+    <MemoryRouter initialEntries={[section ? `/s/${token}/${section}` : `/s/${token}`]}>
       <Routes>
-        <Route path="/s/:token" element={<SessionPage />} />
+        <Route path="/s/:token/:section?" element={<SessionPage />} />
       </Routes>
+      <LocationProbe />
     </MemoryRouter>,
   )
+}
+
+/** The typed answers live on the page, so the app bar chip and the form share this label. */
+function questionField() {
+  return screen.getByLabelText(/How is the team structured/)
 }
 
 afterEach(() => {
@@ -301,7 +313,7 @@ describe('SessionPage', () => {
     )
   })
 
-  test('shows a tab per section with item counts, the first one active', async () => {
+  test('gives every section a tab route, the screening one active by default', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
     renderAt('tok123')
     await waitFor(() => {
@@ -314,11 +326,137 @@ describe('SessionPage', () => {
     expect(screening).toHaveTextContent('2')
 
     const behavioral = screen.getByRole('link', { name: /Behavioral/ })
-    // Until #107 adds section routes, later tabs jump to their surface on this page.
-    expect(behavioral).toHaveAttribute('href', '#behavioral')
+    expect(behavioral).toHaveAttribute('href', '/s/tok123/behavioral')
     expect(behavioral).not.toHaveAttribute('aria-current')
     expect(behavioral).toHaveTextContent('1')
-    expect(document.getElementById('behavioral')?.tagName).toBe('SECTION')
+  })
+
+  test('shows logistics, the first section, and the form on the screening tab only', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /Logistics/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Initial conversation/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Questions for you/ })).toBeInTheDocument()
+    // The second section has a tab of its own, so it is not on this one.
+    expect(screen.queryByRole('button', { name: /^Behavioral/ })).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Tell me about a disagreement you handled well.'),
+    ).not.toBeInTheDocument()
+  })
+
+  test('shows only its own section on a section route, with that tab active', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123', 'behavioral')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Tell me about a disagreement you handled well.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Logistics/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Initial conversation/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Questions for you/ })).not.toBeInTheDocument()
+    // The app bar and the footer stay on every tab.
+    expect(screen.getByText('Acme, until 8 Sep')).toBeInTheDocument()
+    expect(screen.getByText('Built by the candidate.')).toBeInTheDocument()
+
+    expect(screen.getByRole('link', { name: /Behavioral/ })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /Screening/ })).not.toHaveAttribute('aria-current')
+  })
+
+  test.each([
+    ['a section that is not in the content', 'made-up'],
+    ['the first section, which the screening tab already carries', 'intro'],
+  ])('falls back to the screening tab for %s', async (_label, section) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123', section)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Logistics/ })).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /Initial conversation/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Screening/ })).toHaveAttribute('aria-current', 'page')
+    await waitFor(() => {
+      expect(screen.getByTestId('pathname')).toHaveTextContent('/s/tok123')
+    })
+    expect(screen.getByTestId('pathname').textContent).toBe('/s/tok123')
+  })
+
+  test('fetches the session once across tab changes, and scrolls back to the top', async () => {
+    const user = userEvent.setup()
+    const scrollTo = vi.fn()
+    vi.stubGlobal('scrollTo', scrollTo)
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, sample))
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(scrollTo).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('link', { name: /Behavioral/ }))
+    await waitFor(() => {
+      expect(screen.getByText('Tell me about a disagreement you handled well.')).toBeInTheDocument()
+    })
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
+
+    await user.click(screen.getByRole('link', { name: /Screening/ }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Logistics/ })).toBeInTheDocument()
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  test('keeps unsent answer text when the visitor leaves and returns to the tab', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('scrollTo', vi.fn())
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+
+    await user.type(questionField(), 'Four squads.')
+    expect(screen.getAllByText('1 of 1 required answered').length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('link', { name: /Behavioral/ }))
+    await waitFor(() => {
+      expect(screen.getByText('Tell me about a disagreement you handled well.')).toBeInTheDocument()
+    })
+    // The chip counts the same answers from the page, with the form unmounted.
+    expect(screen.getByText('1 of 1 required answered')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('link', { name: /Screening/ }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Questions for you/ })).toBeInTheDocument()
+    })
+    expect(questionField()).toHaveValue('Four squads.')
+  })
+
+  test('fades the tab content in, and not under reduced motion', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    const { container, unmount } = renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+    expect(container.querySelector('main > div')).toHaveClass('animate-tab-in')
+    unmount()
+
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+    )
+    const reduced = renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+    expect(reduced.container.querySelector('main > div')).not.toHaveClass('animate-tab-in')
   })
 
   test('counts filled required answers in the status chip as the visitor types', async () => {
@@ -351,12 +489,6 @@ describe('SessionPage', () => {
 
     expect(screen.getByRole('button', { name: /Initial conversation/ })).toHaveTextContent(
       '2 answers',
-    )
-
-    const behavioral = screen.getByRole('button', { name: /Behavioral/ })
-    expect(behavioral).toHaveTextContent('1 answer')
-    expect(behavioral.closest('section')).toHaveTextContent(
-      'Tell me about a disagreement you handled well.',
     )
 
     const questions = screen.getByRole('button', { name: /Questions for you/ })
@@ -399,16 +531,28 @@ describe('SessionPage', () => {
 
   test('gives each section surface its own icon', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
-    renderAt('tok123')
+    const { unmount } = renderAt('tok123')
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
     })
+    const intro = screen
+      .getByRole('button', { name: /Initial conversation/ })
+      .querySelector('svg')
+      ?.getAttribute('class')
+    unmount()
 
-    const intro = screen.getByRole('button', { name: /Initial conversation/ }).querySelector('svg')
-    const behavioral = screen.getByRole('button', { name: /Behavioral/ }).querySelector('svg')
-    expect(intro).not.toBeNull()
-    expect(behavioral).not.toBeNull()
-    expect(intro?.getAttribute('class')).not.toBe(behavioral?.getAttribute('class'))
+    renderAt('tok123', 'behavioral')
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Behavioral/ })).toBeInTheDocument()
+    })
+    const behavioral = screen
+      .getByRole('button', { name: /Behavioral/ })
+      .querySelector('svg')
+      ?.getAttribute('class')
+
+    expect(intro).toBeTruthy()
+    expect(behavioral).toBeTruthy()
+    expect(intro).not.toBe(behavioral)
   })
 
   test('dates the sent chip from the timestamp the submit call returned', async () => {

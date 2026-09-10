@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { Code, FileText, MapPin, MessagesSquare, User, type LucideIcon } from 'lucide-react'
 
@@ -19,6 +19,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { useReducedMotion } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 
 type PageState =
   | { status: 'loading' }
@@ -198,30 +200,28 @@ function SectionItems({ section }: { section: Content['sections'][number] }) {
 interface CompanyQuestionsFormProps {
   token: string
   questions: CompanyQuestion[]
+  /**
+   * The typed answers, held by the page so that unsent text survives a tab change. Browser
+   * persistence across a closed tab is #109.
+   */
+  values: Record<string, string>
+  onChange: (id: string, value: string) => void
   /** Called with the timestamp the API recorded for the submission. */
   onSubmitted: (submittedAt: string) => void
   onAlreadySubmitted: () => void
-  /** Called with the number of required questions that have a non-blank answer. */
-  onProgress?: (answeredRequired: number) => void
 }
 
 function CompanyQuestionsForm({
   token,
   questions,
+  values,
+  onChange,
   onSubmitted,
   onAlreadySubmitted,
-  onProgress,
 }: CompanyQuestionsFormProps) {
-  const [values, setValues] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-
-  const handleChange = (id: string, value: string) => {
-    const next = { ...values, [id]: value }
-    setValues(next)
-    onProgress?.(questions.filter((q) => q.required && next[q.id]?.trim()).length)
-  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -285,7 +285,7 @@ function CompanyQuestionsForm({
             id={`question-${q.id}`}
             aria-invalid={Boolean(fieldErrors[q.id])}
             value={values[q.id] ?? ''}
-            onChange={(e) => handleChange(q.id, e.target.value)}
+            onChange={(e) => onChange(q.id, e.target.value)}
           />
           {fieldErrors[q.id] && <p className="text-danger-on-dark text-xs">{fieldErrors[q.id]}</p>}
         </div>
@@ -298,9 +298,13 @@ function CompanyQuestionsForm({
 }
 
 export default function SessionPage() {
-  const { token } = useParams<{ token: string }>()
+  const { token, section: sectionParam } = useParams<{ token: string; section?: string }>()
+  const navigate = useNavigate()
+  const reducedMotion = useReducedMotion()
   const [state, setState] = useState<PageState>({ status: 'loading' })
-  const [answeredRequired, setAnsweredRequired] = useState(0)
+  // Held here, not in the form, so that leaving the screening tab and coming back keeps
+  // whatever was typed. Persisting it in the browser is #109.
+  const [answers, setAnswers] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!token) return
@@ -329,6 +333,30 @@ export default function SessionPage() {
     }
   }, [token])
 
+  // Tab routing. `/s/:token` is the screening tab, which carries the first section; every other
+  // section is `/s/:token/:section`. Sections are only known once the content is in, so the
+  // routing is worked out here rather than in the router.
+  const sections = 'content' in state ? state.content.sections : []
+  const sectionIndex = sectionParam ? sections.findIndex((s) => s.id === sectionParam) : 0
+  // Index 0 has no route of its own, so its id in the URL is as unknown as a made-up one.
+  const unknownSection = Boolean(sectionParam) && sections.length > 0 && sectionIndex < 1
+  const activeIndex = sectionIndex < 1 ? 0 : sectionIndex
+  const activeSectionId = sections[activeIndex]?.id
+  const previousSectionId = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (unknownSection) navigate(`/s/${token}`, { replace: true })
+  }, [navigate, token, unknownSection])
+
+  useEffect(() => {
+    if (!activeSectionId) return
+    // Only on a change: the first render of a tab route is already at the top.
+    if (previousSectionId.current !== null && previousSectionId.current !== activeSectionId) {
+      window.scrollTo({ top: 0 })
+    }
+    previousSectionId.current = activeSectionId
+  }, [activeSectionId])
+
   if (!token) return <NotFoundState />
   if (state.status === 'loading') return <LoadingSkeleton />
   if (state.status === 'not_found') return <NotFoundState />
@@ -339,20 +367,24 @@ export default function SessionPage() {
 
   const sent = state.status !== 'live'
   const requiredCount = content.company_questions.filter((q) => q.required).length
+  const answeredRequired = content.company_questions.filter(
+    (q) => q.required && answers[q.id]?.trim(),
+  ).length
   const statusChip = sent
     ? `Sent ${formatDate(session.submitted_at ?? new Date().toISOString(), LONG_MONTHS)}`
     : `${answeredRequired} of ${requiredCount} required answered`
   const sessionChip = `${session.company}, until ${formatDate(session.expires_at, SHORT_MONTHS)}`
 
-  // Until #107 adds a route per section, every tab stays on this page: the first is the
-  // page itself and the rest jump to their surface.
   const tabs: AppBarTab[] = content.sections.map((section, index) => ({
     id: section.id,
     label: index === 0 ? 'Screening' : section.title,
     count: section.items.length,
-    to: index === 0 ? `/s/${token}` : `#${section.id}`,
-    active: index === 0,
+    to: index === 0 ? `/s/${token}` : `/s/${token}/${section.id}`,
+    active: index === activeIndex,
   }))
+
+  const activeSection = content.sections[activeIndex]
+  const screening = activeIndex === 0
 
   return (
     <Page
@@ -367,55 +399,67 @@ export default function SessionPage() {
         />
       }
     >
-      <Surface title="Logistics" icon={MapPin} count={pluralize(content.logistics.length, 'item')}>
-        <LogisticsList logistics={content.logistics} />
-      </Surface>
+      {/* Keyed on the section so a tab change replays the fade. */}
+      <div
+        key={activeSectionId ?? 'screening'}
+        className={cn('flex flex-col gap-6', !reducedMotion && 'animate-tab-in')}
+      >
+        {screening && (
+          <Surface
+            title="Logistics"
+            icon={MapPin}
+            count={pluralize(content.logistics.length, 'item')}
+          >
+            <LogisticsList logistics={content.logistics} />
+          </Surface>
+        )}
 
-      {content.sections.map((section, index) => (
-        <Surface
-          key={section.id}
-          id={section.id}
-          title={section.title}
-          icon={sectionIcon(index)}
-          count={pluralize(section.items.length, 'answer')}
-        >
-          <SectionItems section={section} />
-        </Surface>
-      ))}
+        {activeSection && (
+          <Surface
+            id={activeSection.id}
+            title={activeSection.title}
+            icon={sectionIcon(activeIndex)}
+            count={pluralize(activeSection.items.length, 'answer')}
+          >
+            <SectionItems section={activeSection} />
+          </Surface>
+        )}
 
-      {state.status === 'live' && (
-        <Surface title="Questions for you" count={statusChip} dark>
-          <CompanyQuestionsForm
-            token={token}
-            questions={content.company_questions}
-            onProgress={setAnsweredRequired}
-            onSubmitted={(submittedAt) =>
-              setState({
-                status: 'submitted',
-                session: { ...session, answers_submitted: true, submitted_at: submittedAt },
-                content,
-              })
-            }
-            onAlreadySubmitted={() => setState({ status: 'already_submitted', session, content })}
-          />
-        </Surface>
-      )}
+        {screening && state.status === 'live' && (
+          <Surface title="Questions for you" count={statusChip} dark>
+            <CompanyQuestionsForm
+              token={token}
+              questions={content.company_questions}
+              values={answers}
+              onChange={(id, value) => setAnswers((previous) => ({ ...previous, [id]: value }))}
+              onSubmitted={(submittedAt) =>
+                setState({
+                  status: 'submitted',
+                  session: { ...session, answers_submitted: true, submitted_at: submittedAt },
+                  content,
+                })
+              }
+              onAlreadySubmitted={() => setState({ status: 'already_submitted', session, content })}
+            />
+          </Surface>
+        )}
 
-      {state.status === 'submitted' && (
-        <Alert>
-          <AlertTitle>Thanks, your answers are in</AlertTitle>
-          <AlertDescription>The candidate will follow up from here.</AlertDescription>
-        </Alert>
-      )}
+        {screening && state.status === 'submitted' && (
+          <Alert>
+            <AlertTitle>Thanks, your answers are in</AlertTitle>
+            <AlertDescription>The candidate will follow up from here.</AlertDescription>
+          </Alert>
+        )}
 
-      {state.status === 'already_submitted' && (
-        <Alert>
-          <AlertTitle>Answers already submitted</AlertTitle>
-          <AlertDescription>
-            This session already has answers on file for these questions.
-          </AlertDescription>
-        </Alert>
-      )}
+        {screening && state.status === 'already_submitted' && (
+          <Alert>
+            <AlertTitle>Answers already submitted</AlertTitle>
+            <AlertDescription>
+              This session already has answers on file for these questions.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
     </Page>
   )
 }
