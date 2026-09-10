@@ -13,6 +13,8 @@ export interface SurfaceProps {
   defaultOpen?: boolean
   /** The questions surface: dark fill, no border, no icon. */
   dark?: boolean
+  /** DOM id, so a tab can jump to the surface within the page. */
+  id?: string
   children: ReactNode
 }
 
@@ -27,6 +29,7 @@ export default function Surface({
   collapsible = true,
   defaultOpen = true,
   dark = false,
+  id,
   children,
 }: SurfaceProps) {
   const [open, setOpen] = useState(defaultOpen)
@@ -34,7 +37,7 @@ export default function Surface({
   const bodyId = useId()
   const isOpen = collapsible ? open : true
 
-  const headerRow = cn('flex h-[52px] items-center', dark ? 'bg-dark-input' : 'bg-accent-tint')
+  const headerRow = cn('flex h-[52px] items-center', dark ? 'bg-dark-input' : 'bg-moss-tint')
   const headerInner = 'flex w-full items-center justify-between gap-6 px-9'
 
   const headerContent = (
@@ -44,7 +47,7 @@ export default function Surface({
           <Icon
             aria-hidden="true"
             strokeWidth={1.4}
-            className={cn('size-[18px] shrink-0', dark ? 'text-on-dark' : 'text-accent')}
+            className={cn('size-[18px] shrink-0', dark ? 'text-on-dark' : 'text-moss')}
           />
         )}
         <span
@@ -80,6 +83,7 @@ export default function Surface({
 
   return (
     <section
+      id={id}
       className={cn(
         'flex flex-col overflow-hidden rounded-lg',
         dark ? 'bg-dark' : 'border-surface-border bg-surface border',
@@ -95,7 +99,7 @@ export default function Surface({
             onClick={() => setOpen((previous) => !previous)}
             className={cn(
               headerInner,
-              'focus-visible:outline-accent h-full cursor-pointer text-left focus-visible:outline-2 focus-visible:-outline-offset-2',
+              'focus-visible:outline-moss h-full cursor-pointer text-left focus-visible:outline-2 focus-visible:-outline-offset-2',
             )}
           >
             {headerContent}

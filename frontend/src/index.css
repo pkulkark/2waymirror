@@ -15,9 +15,11 @@
   --ink: oklch(0.197 0.007 78.2);
   --muted-ink: oklch(0.525 0.013 84.6);
   --hairline: oklch(0.916 0.01 87.5);
-  --accent: oklch(0.52 0.102 154.7);
-  --accent-hover: oklch(0.458 0.091 154.6);
-  --accent-tint: oklch(0.948 0.015 158.2);
+  /* The design system calls the brand green "accent"; in CSS it is "moss" so that it never
+     collides with shadcn's --accent, which is the tinted hover background. */
+  --moss: oklch(0.52 0.102 154.7);
+  --moss-hover: oklch(0.458 0.091 154.6);
+  --moss-tint: oklch(0.948 0.015 158.2);
   --dark: oklch(0.235 0.019 184.1);
   --on-dark: oklch(0.955 0.008 91.5);
   --on-dark-muted: oklch(0.757 0.013 164.7);
@@ -35,18 +37,19 @@
   --card-foreground: var(--ink);
   --popover: var(--surface);
   --popover-foreground: var(--ink);
-  --primary: var(--accent);
+  --primary: var(--moss);
   --primary-foreground: var(--on-dark);
-  --secondary: var(--accent-tint);
-  --secondary-foreground: var(--accent);
-  --muted: var(--accent-tint);
+  --secondary: var(--moss-tint);
+  --secondary-foreground: var(--moss);
+  --muted: var(--moss-tint);
   --muted-foreground: var(--muted-ink);
-  --accent-foreground: var(--accent);
+  --accent: var(--moss-tint);
+  --accent-foreground: var(--moss);
   --destructive: var(--danger);
   --destructive-foreground: var(--on-dark);
   --border: var(--surface-border);
   --input: var(--surface-border);
-  --ring: var(--accent);
+  --ring: var(--moss);
 }
 
 @theme inline {
@@ -79,8 +82,9 @@
   --color-ink: var(--ink);
   --color-muted-ink: var(--muted-ink);
   --color-hairline: var(--hairline);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-tint: var(--accent-tint);
+  --color-moss: var(--moss);
+  --color-moss-hover: var(--moss-hover);
+  --color-moss-tint: var(--moss-tint);
   --color-dark: var(--dark);
   --color-on-dark: var(--on-dark);
   --color-on-dark-muted: var(--on-dark-muted);

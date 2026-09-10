@@ -93,6 +93,25 @@ describe('AppBar', () => {
     expect(screen.getByRole('link', { name: /Behavioral\s*6 answers/ })).toBeInTheDocument()
   })
 
+  test('an explicit active flag overrides route matching', () => {
+    renderAppBar({
+      name: 'Jordan Sample',
+      tabs: [
+        { id: 'intro', label: 'Screening', count: 5, to: '/s/tok123', active: true },
+        {
+          id: 'behavioral',
+          label: 'Behavioral',
+          count: 6,
+          to: '/s/tok123#behavioral',
+          active: false,
+        },
+      ],
+    })
+
+    expect(screen.getByRole('link', { name: /Screening/ })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: /Behavioral/ })).not.toHaveAttribute('aria-current')
+  })
+
   test('activates a later tab when the route points at it', () => {
     renderAppBar(
       {

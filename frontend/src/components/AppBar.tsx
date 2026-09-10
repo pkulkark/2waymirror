@@ -1,5 +1,5 @@
 import { Briefcase, GitFork, Link as LinkIcon, Mail, type LucideIcon } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
 
@@ -13,6 +13,8 @@ export interface AppBarTab {
   label: string
   count: number
   to: string
+  /** Overrides route matching, for tabs that jump within the current page. */
+  active?: boolean
 }
 
 export interface AppBarProps {
@@ -48,7 +50,7 @@ function ProfileLink({ link, icon: Icon }: { link: AppBarLink; icon: LucideIcon 
     <a
       href={link.url}
       {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
-      className="text-on-dark focus-visible:outline-accent flex items-center gap-[7px] text-[15px] leading-[1.4] font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+      className="text-on-dark focus-visible:outline-moss flex items-center gap-[7px] text-[15px] leading-[1.4] font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
     >
       <Icon aria-hidden="true" strokeWidth={1.4} className="text-on-dark-muted size-4 shrink-0" />
       <span>{link.label}</span>
@@ -71,6 +73,7 @@ export default function AppBar({
   const hasChips = Boolean(statusChip) || Boolean(sessionChip)
   const hasSecondRow = Boolean(headline) || Boolean(links && links.length > 0)
   const hasTabs = Boolean(tabs && tabs.length > 0)
+  const { pathname } = useLocation()
 
   return (
     <header className="bg-dark sticky top-0 z-50">
@@ -87,7 +90,7 @@ export default function AppBar({
                 </span>
               )}
               {sessionChip && (
-                <span className="bg-accent-tint text-accent rounded-full px-3 py-1.5 text-[13px] leading-[1.4] font-semibold">
+                <span className="bg-moss-tint text-moss rounded-full px-3 py-1.5 text-[13px] leading-[1.4] font-semibold">
                   {sessionChip}
                 </span>
               )}
@@ -110,30 +113,30 @@ export default function AppBar({
 
         {hasTabs && (
           <nav aria-label="Sections" className="flex h-11 items-stretch gap-8">
-            {tabs?.map((tab) => (
-              <NavLink
-                key={tab.id}
-                to={tab.to}
-                end
-                className={({ isActive }) =>
-                  cn(
-                    'focus-visible:outline-accent flex items-center gap-2 border-b-2 text-[15px] leading-[1.4] font-semibold focus-visible:outline-2 focus-visible:-outline-offset-2',
-                    isActive
-                      ? 'border-accent text-on-dark'
-                      : 'text-on-dark-muted border-transparent',
-                  )
-                }
-              >
-                <span>{tab.label}</span>
-                <span className="bg-dark-input text-on-dark-muted rounded-full px-2 py-0.5 text-[12px] leading-[1.4] font-semibold">
-                  {/* The pill shows a bare number; screen readers get the noun with it. */}
-                  <span aria-hidden="true">{tab.count}</span>
-                  <span className="sr-only">
-                    {tab.count} {tab.count === 1 ? 'answer' : 'answers'}
+            {tabs?.map((tab) => {
+              // An explicit flag wins; otherwise the tab is active when its path is the page.
+              const active = tab.active ?? pathname === tab.to
+              return (
+                <Link
+                  key={tab.id}
+                  to={tab.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'focus-visible:outline-moss flex items-center gap-2 border-b-2 text-[15px] leading-[1.4] font-semibold focus-visible:outline-2 focus-visible:-outline-offset-2',
+                    active ? 'border-moss text-on-dark' : 'text-on-dark-muted border-transparent',
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span className="bg-dark-input text-on-dark-muted rounded-full px-2 py-0.5 text-[12px] leading-[1.4] font-semibold">
+                    {/* The pill shows a bare number; screen readers get the noun with it. */}
+                    <span aria-hidden="true">{tab.count}</span>
+                    <span className="sr-only">
+                      {tab.count} {tab.count === 1 ? 'answer' : 'answers'}
+                    </span>
                   </span>
-                </span>
-              </NavLink>
-            ))}
+                </Link>
+              )
+            })}
           </nav>
         )}
       </div>

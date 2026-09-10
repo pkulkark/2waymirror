@@ -314,9 +314,28 @@ describe('SessionPage', () => {
     expect(screening).toHaveTextContent('2')
 
     const behavioral = screen.getByRole('link', { name: /Behavioral/ })
-    expect(behavioral).toHaveAttribute('href', '/s/tok123/behavioral')
+    // Until #107 adds section routes, later tabs jump to their surface on this page.
+    expect(behavioral).toHaveAttribute('href', '/s/tok123#behavioral')
     expect(behavioral).not.toHaveAttribute('aria-current')
     expect(behavioral).toHaveTextContent('1')
+    expect(document.getElementById('behavioral')?.tagName).toBe('SECTION')
+  })
+
+  test('counts filled required answers in the status chip as the visitor types', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+    expect(screen.getAllByText('0 of 1 required answered').length).toBeGreaterThan(0)
+
+    await userEvent.type(screen.getByLabelText(/How is the team structured/), 'Four squads.')
+
+    expect(screen.getAllByText('1 of 1 required answered').length).toBeGreaterThan(0)
+    expect(screen.queryByText('0 of 1 required answered')).not.toBeInTheDocument()
+
+    await userEvent.clear(screen.getByLabelText(/How is the team structured/))
+    expect(screen.getAllByText('0 of 1 required answered').length).toBeGreaterThan(0)
   })
 
   test('wraps logistics, each section, and the questions form in surfaces', async () => {

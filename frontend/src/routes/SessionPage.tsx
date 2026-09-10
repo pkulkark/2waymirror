@@ -201,6 +201,8 @@ interface CompanyQuestionsFormProps {
   /** Called with the timestamp the API recorded for the submission. */
   onSubmitted: (submittedAt: string) => void
   onAlreadySubmitted: () => void
+  /** Called with the number of required questions that have a non-blank answer. */
+  onProgress?: (answeredRequired: number) => void
 }
 
 function CompanyQuestionsForm({
@@ -208,6 +210,7 @@ function CompanyQuestionsForm({
   questions,
   onSubmitted,
   onAlreadySubmitted,
+  onProgress,
 }: CompanyQuestionsFormProps) {
   const [values, setValues] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -215,7 +218,9 @@ function CompanyQuestionsForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const handleChange = (id: string, value: string) => {
-    setValues((prev) => ({ ...prev, [id]: value }))
+    const next = { ...values, [id]: value }
+    setValues(next)
+    onProgress?.(questions.filter((q) => q.required && next[q.id]?.trim()).length)
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -295,6 +300,7 @@ function CompanyQuestionsForm({
 export default function SessionPage() {
   const { token } = useParams<{ token: string }>()
   const [state, setState] = useState<PageState>({ status: 'loading' })
+  const [answeredRequired, setAnsweredRequired] = useState(0)
 
   useEffect(() => {
     if (!token) return
@@ -335,14 +341,17 @@ export default function SessionPage() {
   const requiredCount = content.company_questions.filter((q) => q.required).length
   const statusChip = sent
     ? `Sent ${formatDate(session.submitted_at ?? new Date().toISOString(), LONG_MONTHS)}`
-    : `0 of ${requiredCount} required answered`
+    : `${answeredRequired} of ${requiredCount} required answered`
   const sessionChip = `${session.company}, until ${formatDate(session.expires_at, SHORT_MONTHS)}`
 
+  // Until #107 adds a route per section, every tab stays on this page: the first is the
+  // page itself and the rest jump to their surface.
   const tabs: AppBarTab[] = content.sections.map((section, index) => ({
     id: section.id,
     label: index === 0 ? 'Screening' : section.title,
     count: section.items.length,
-    to: index === 0 ? `/s/${token}` : `/s/${token}/${section.id}`,
+    to: index === 0 ? `/s/${token}` : `/s/${token}#${section.id}`,
+    active: index === 0,
   }))
 
   return (
@@ -365,6 +374,7 @@ export default function SessionPage() {
       {content.sections.map((section, index) => (
         <Surface
           key={section.id}
+          id={section.id}
           title={section.title}
           icon={sectionIcon(index)}
           count={pluralize(section.items.length, 'answer')}
@@ -378,6 +388,7 @@ export default function SessionPage() {
           <CompanyQuestionsForm
             token={token}
             questions={content.company_questions}
+            onProgress={setAnsweredRequired}
             onSubmitted={(submittedAt) =>
               setState({
                 status: 'submitted',

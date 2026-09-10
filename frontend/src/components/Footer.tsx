@@ -7,7 +7,7 @@ export default function Footer() {
       <span>Built by the candidate.</span>
       <Link
         to="/"
-        className="text-accent hover:text-accent-hover focus-visible:outline-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="text-moss hover:text-moss-hover focus-visible:outline-moss hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         How this page was made
       </Link>
