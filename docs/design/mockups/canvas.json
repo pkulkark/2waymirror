@@ -7,10 +7,6 @@
     {
       "id": "page-2",
       "name": "States"
-    },
-    {
-      "id": "page-3",
-      "name": "Directions, for reference"
     }
   ],
   "artboards": [
@@ -85,33 +81,6 @@
       "h": 720,
       "title": "Not found",
       "page": "page-2"
-    },
-    {
-      "file": "directions/DirectionA.dc.html",
-      "x": 0,
-      "y": 0,
-      "w": 1280,
-      "h": 1800,
-      "title": "Direction A, Dossier",
-      "page": "page-3"
-    },
-    {
-      "file": "directions/DirectionB.dc.html",
-      "x": 1360,
-      "y": 0,
-      "w": 1280,
-      "h": 1800,
-      "title": "Direction B, Ledger",
-      "page": "page-3"
-    },
-    {
-      "file": "directions/DirectionC.dc.html",
-      "x": 2720,
-      "y": 0,
-      "w": 1280,
-      "h": 1800,
-      "title": "Direction C, Mirror",
-      "page": "page-3"
     }
   ],
   "launch": {

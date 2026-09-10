@@ -16,6 +16,5 @@ dates, and answers are fictional.
 | `Loading.dc.html` | Loading skeleton |
 | `Expired.dc.html` | Expired or revoked link |
 | `NotFound.dc.html` | Unknown link |
-| `directions/` | The three direction sketches explored before the system was settled |
 
 The tokens and rules these boards follow are in [../design-system.md](../design-system.md).
