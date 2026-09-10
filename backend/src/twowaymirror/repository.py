@@ -44,10 +44,6 @@ RETENTION_DAYS_AFTER_EXPIRY = 180
 _ANSWERS_SK_SUFFIX = "#ANSWERS"
 
 
-class AnswersAlreadySubmittedError(Exception):
-    """Answers were already submitted for this session token."""
-
-
 class SessionRecord(BaseModel):
     """Full session record, including fields the API never returns to a client."""
 
@@ -64,14 +60,17 @@ class SessionRecord(BaseModel):
     def is_available(self) -> bool:
         return not self.revoked and self.expires_at > datetime.now(UTC)
 
-    def to_session(self, *, answers_submitted: bool) -> Session:
+    def to_session(self, *, answers: Answers | None) -> Session:
         return Session(
             company=self.company,
             contact=self.contact,
             variant=self.variant,
             created_at=self.created_at,
             expires_at=self.expires_at,
-            answers_submitted=answers_submitted,
+            answers_submitted=answers is not None,
+            submitted_at=answers.submitted_at if answers else None,
+            answers=answers.answers if answers else None,
+            questions=answers.questions if answers else None,
         )
 
 
@@ -223,10 +222,12 @@ class DynamoDBSessionRepository:
         questions: list[QuestionSnapshot] | None = None,
         ttl: int | None = None,
     ) -> Answers:
-        """Conditional put: raises AnswersAlreadySubmittedError on a second submit.
+        """Store the answers, replacing any earlier submission for this session.
 
-        `questions` is the snapshot of the company questions as the company saw them.
-        `ttl` should be the session's ttl so the two items are retained together.
+        Answers stay editable until the link expires, so a second submit overwrites the
+        first and refreshes the question snapshot. `questions` is the snapshot of the
+        company questions as the company saw them. `ttl` should be the session's ttl so
+        the two items are retained together.
         """
         now = datetime.now(UTC)
         snapshot = questions or []
@@ -239,12 +240,7 @@ class DynamoDBSessionRepository:
         }
         if ttl is not None:
             item["ttl"] = ttl
-        try:
-            self._table.put_item(Item=item, ConditionExpression="attribute_not_exists(PK)")
-        except ClientError as exc:
-            if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                raise AnswersAlreadySubmittedError(token) from exc
-            raise
+        self._table.put_item(Item=item)
         return Answers(submitted_at=now, answers=answers, questions=snapshot)
 
 

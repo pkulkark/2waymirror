@@ -30,10 +30,10 @@ All responses JSON. Errors use `{"detail": "..."}` (FastAPI default).
 | Method and path | Success | Errors |
 |---|---|---|
 | `GET /api/health` | `200 {"status":"ok","version":"x.y.z"}` | |
-| `GET /api/sessions/{token}` | `200 {"session": Session, "content": Content}` | `404` unknown token, `410` expired or revoked |
-| `POST /api/sessions/{token}/answers` body `{"answers": {"<question_id>": "<text>"}}` | `201 {"submitted_at": "..."}` | `404`, `410`, `409` already submitted, `422` unknown question id, empty answer, or a required question missing |
+| `GET /api/sessions/{token}` | `200 {"session": Session, "content": Content}` | `404` unknown token, `410` expired or revoked, body `{"detail", "candidate": {"name", "email"}, "expires_at"}` so the page can offer the candidate's contact; the profile is read on its own for this, so a broken answer file cannot turn the 410 into a 500 |
+| `POST /api/sessions/{token}/answers` body `{"answers": {"<question_id>": "<text>"}}` | `201 {"submitted_at": "..."}`; a later submit replaces the stored answers and refreshes the question snapshot | `404`, `410` (same body as above), `422` unknown question id, empty answer, or a required question missing |
 
-`Session` as returned: `{"company", "contact", "variant", "created_at", "expires_at", "answers_submitted": bool}`. Never returns tenant, ttl, or revoked.
+`Session` as returned: `{"company", "contact", "variant", "created_at", "expires_at", "answers_submitted": bool, "submitted_at": str | null, "answers": {"<question_id>": "<text>"} | null, "questions": [{"id", "question", "required"}] | null}`. Answers are editable until the link expires, so the stored answers come back with the session for the page to show and prefill, together with the question snapshot they answered; the page pairs answers with that snapshot, not with the current `company_questions`, and treats any difference as a question that changed since. Never returns tenant, ttl, or revoked.
 
 `Content` as returned: `{"candidate": {...profile...}, "logistics": [{"label", "value"}], "sections": [{"id", "title", "items": [{"id", "question", "summary": str | null, "answer_md", "evidence": [{"label", "url", "type": str | null}]}]}], "company_questions": [{"id", "question", "required": bool}]}`. `logistics` is an ordered list, not a map. `summary` and evidence `type` are optional and `null` when the content omits them; `type` is one of `repo`, `pr`, `talk`, `writeup`, or `other`. Everything is already merged for the session's variant; the frontend never sees other variants.
 
@@ -42,7 +42,7 @@ All responses JSON. Errors use `{"detail": "..."}` (FastAPI default).
 Directory layout, identical whether the source is a local directory or an S3 prefix:
 
 ```
-profile.yaml                # name, headline, links, location
+profile.yaml                # name, email, headline, links, location
 logistics.yaml              # ordered list of items (label, value); each may carry per-variant overrides under `variants:`
 company_questions.yaml      # list; each may carry `variants:` to restrict which variants ask it
 sections/<section>.yaml     # id, title, ordered list of answer ids

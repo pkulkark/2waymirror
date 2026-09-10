@@ -16,6 +16,9 @@ export interface Session {
   created_at: string
   expires_at: string
   answers_submitted: boolean
+  submitted_at?: string | null
+  answers?: Record<string, string> | null
+  questions?: CompanyQuestion[] | null
 }
 
 export type EvidenceType = 'repo' | 'pr' | 'talk' | 'writeup' | 'other'
@@ -33,6 +36,7 @@ export interface CandidateLink {
 
 export interface Candidate {
   name: string
+  email?: string
   headline: string
   location?: string
   links?: CandidateLink[]
