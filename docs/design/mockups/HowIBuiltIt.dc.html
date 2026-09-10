@@ -1,0 +1,279 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Source+Sans+3:wght@400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #2F7A4E; text-decoration: none; }
+    a:hover { color: #256640; text-decoration: underline; }
+    .serif { font-family: "Newsreader", Georgia, serif; }
+    .sans { font-family: "Source Sans 3", system-ui, sans-serif; }
+    .surface { background: #FFFFFF; border: 1px solid #DCE0D8; border-radius: 12px; box-sizing: border-box; }
+      svg text { font-family: "Source Sans 3", system-ui, sans-serif; }
+  </style>
+</helmet>
+
+<div style="width:1280px; min-height:2350px; background:#E3E7E1; color:#171512; box-sizing:border-box; display:flex; flex-direction:column; gap:0;">
+
+  <!-- Dark bar, one row -->
+  <div style="background:#14211F; display:flex; flex-direction:column; align-items:center; gap:0; box-sizing:border-box;">
+    <div style="width:960px; height:56px; display:flex; align-items:center; justify-content:space-between; gap:24px; box-sizing:border-box;">
+      <div class="serif" style="font-size:20px; line-height:1; font-weight:500; color:#F2F0EA;">2WayMirror</div>
+      <a class="sans" href="#" style="display:flex; align-items:center; gap:7px; font-size:15px; line-height:1.4; font-weight:600; color:#F2F0EA;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#A9B3AE" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="4" cy="3.5" r="1.75"></circle>
+          <circle cx="4" cy="12.5" r="1.75"></circle>
+          <circle cx="12" cy="5.5" r="1.75"></circle>
+          <path d="M4 5.25 L4 10.75"></path>
+          <path d="M12 7.25 C12 10.25 9 9.5 8 11"></path>
+        </svg>
+        <span>View source</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Page body -->
+  <div style="display:flex; flex-direction:column; align-items:center; gap:0;">
+    <div style="width:960px; display:flex; flex-direction:column; gap:0; box-sizing:border-box;">
+
+      <!-- Opener, on the ground -->
+      <div style="padding:48px 0 40px 0; display:flex; flex-direction:column; gap:16px; box-sizing:border-box;">
+        <h1 class="serif" style="margin:0; max-width:760px; font-size:40px; line-height:1.15; font-weight:500; color:#171512;">Another company. Another initial call.</h1>
+        <p class="serif" style="margin:0; max-width:760px; font-size:19px; line-height:1.55; font-weight:400; color:#171512;">Thirty to sixty minutes on your background, what you are looking for, and whether the practical details line up. A hiring manager conversation a week later. Then a technical round. Across the companies in your pipeline you give the same answers, tell the same stories, and explain the same projects, and the recruiter on the other side asks the same opening questions of candidate after candidate. Both sides invest those hours before discovering what could have been clear much earlier: the compensation does not align, the role is not what the posting said, or the team works in a way the candidate would not choose.</p>
+        <p class="serif" style="margin:0; max-width:760px; font-size:19px; line-height:1.55; font-weight:400; color:#171512;">2WayMirror moves that groundwork ahead of the meeting. A candidate prepares their experience once and shares a dedicated link with each company, tailored to the kind of role they are pursuing. The hiring team explores it when it suits them:</p>
+        <ul class="serif" style="margin:0; padding-left:24px; display:flex; flex-direction:column; gap:6px; max-width:760px; font-size:19px; line-height:1.55; color:#171512;"><li style="margin:0;"><span style="font-weight:500;">Recruiters</span> check background, availability, compensation, and practical fit.</li><li style="margin:0;"><span style="font-weight:500;">Hiring managers</span> read concrete examples of ownership, collaboration, and difficult decisions.</li><li style="margin:0;"><span style="font-weight:500;">Engineers</span> examine projects, code, and technical tradeoffs as evidence of capability and a starting point for assessment.</li></ul>
+        <p class="serif" style="margin:0; max-width:760px; font-size:19px; line-height:1.55; font-weight:400; color:#171512;">The company answers the candidate's questions in the same space. Both sides spot mismatches earlier, carry context into the next stage, and decide which conversations are worth scheduling. When you do meet, you start further along: "I read about the migration you led. We are facing something similar. Can we talk about the tradeoffs?"</p>
+        <p class="serif" style="margin:0; max-width:760px; font-size:19px; line-height:1.55; font-weight:400; color:#171512;">This project is my own example. Below is the story of building 2WayMirror: the implementation, the decisions, and the lessons. Work you can explore before deciding what you would like to ask me about.</p>
+      </div>
+
+      <!-- Surfaces -->
+      <div style="display:flex; flex-direction:column; gap:24px;">
+
+        <!-- Surface 1, How it works -->
+        <div class="surface" style="display:flex; flex-direction:column; gap:0;">
+          <div style="height:52px; background:#E6F1EA; border-radius:11px 11px 0 0; padding:0 36px; display:flex; align-items:center; justify-content:space-between; gap:24px; box-sizing:border-box;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <h2 class="serif" style="margin:0; font-size:22px; line-height:1.2; font-weight:500; color:#171512;">How it works</h2>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3.5 10 L8 5.5 L12.5 10"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div style="padding:28px 36px 36px 36px; display:flex; flex-direction:column; gap:24px; box-sizing:border-box;">
+
+            <!-- Architecture diagram -->
+            <svg width="888" height="270" viewBox="0 0 888 270" fill="none" role="img" aria-label="Architecture diagram" style="display:block;">
+
+              <!-- Nodes -->
+              <rect x="6" y="16" width="126" height="54" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+              <text x="69" y="48" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171512">Browser</text>
+
+              <rect x="196" y="16" width="160" height="54" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+              <text x="276" y="48" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171512">CloudFront</text>
+
+              <rect x="478" y="16" width="200" height="54" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+              <text x="578" y="40" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171512">S3 web bucket</text>
+              <text x="578" y="58" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="400" fill="#6E6A62">React build</text>
+
+              <rect x="196" y="150" width="160" height="54" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+              <text x="276" y="182" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171512">API Gateway</text>
+
+              <rect x="430" y="150" width="170" height="54" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+              <text x="515" y="174" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171512">Lambda</text>
+              <text x="515" y="192" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="400" fill="#6E6A62">FastAPI</text>
+
+              <rect x="666" y="104" width="216" height="54" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+              <text x="774" y="128" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171512">DynamoDB</text>
+              <text x="774" y="146" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="400" fill="#6E6A62">sessions and answers</text>
+
+              <rect x="666" y="196" width="216" height="54" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+              <text x="774" y="220" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="14" font-weight="600" fill="#171512">S3 content bucket</text>
+              <text x="774" y="238" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="400" fill="#6E6A62">private, read only</text>
+
+              <!-- Browser to CloudFront -->
+              <path d="M132 43 L189 43" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round"></path>
+              <path d="M196 43 L189 39 L189 47 Z" fill="#6E6A62"></path>
+
+              <!-- CloudFront to S3 web bucket -->
+              <path d="M356 43 L471 43" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round"></path>
+              <path d="M478 43 L471 39 L471 47 Z" fill="#6E6A62"></path>
+              <text x="417" y="33" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="600" fill="#2F7A4E">static</text>
+
+              <!-- CloudFront down to API Gateway -->
+              <path d="M276 70 L276 143" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round"></path>
+              <path d="M276 150 L272 143 L280 143 Z" fill="#6E6A62"></path>
+              <text x="288" y="112" text-anchor="start" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="600" fill="#2F7A4E">/api/*</text>
+
+              <!-- API Gateway to Lambda -->
+              <path d="M356 177 L423 177" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round"></path>
+              <path d="M430 177 L423 173 L423 181 Z" fill="#6E6A62"></path>
+
+              <!-- Lambda to DynamoDB -->
+              <path d="M600 177 L633 177 L633 131 L659 131" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M666 131 L659 127 L659 135 Z" fill="#6E6A62"></path>
+
+              <!-- Lambda to S3 content bucket -->
+              <path d="M600 177 L633 177 L633 223 L659 223" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M666 223 L659 219 L659 227 Z" fill="#6E6A62"></path>
+
+            </svg>
+
+            <!-- Captions -->
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:24px;">
+              <p class="sans" style="margin:0; font-size:14px; line-height:1.5; font-weight:400; color:#6E6A62;">One CloudFront distribution serves the app and routes /api to the API, so no CORS.</p>
+              <p class="sans" style="margin:0; font-size:14px; line-height:1.5; font-weight:400; color:#6E6A62;">Content is read from a private bucket per session token and never shipped in the JavaScript.</p>
+              <p class="sans" style="margin:0; font-size:14px; line-height:1.5; font-weight:400; color:#6E6A62;">Sessions are rows with an expiry, not deployments. Creating one is a single write.</p>
+            </div>
+
+            <!-- Hairline -->
+            <div style="height:1px; background:#E6E3DC;"></div>
+
+            <!-- How it ships -->
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#6E6A62;">How it ships</div>
+              <svg width="888" height="60" viewBox="0 0 888 60" fill="none" role="img" aria-label="Deploy pipeline" style="display:block;">
+
+                <rect x="0" y="6" width="158" height="48" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+                <text x="79" y="35" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="600" fill="#171512">Push to main</text>
+
+                <path d="M158 30 L176 30" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round"></path>
+                <path d="M182 30 L176 26.5 L176 33.5 Z" fill="#6E6A62"></path>
+
+                <rect x="182" y="6" width="158" height="48" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+                <text x="261" y="26" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="600" fill="#171512">GitHub Actions, OIDC,</text>
+                <text x="261" y="42" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="600" fill="#171512">no stored keys</text>
+
+                <path d="M340 30 L358 30" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round"></path>
+                <path d="M364 30 L358 26.5 L358 33.5 Z" fill="#6E6A62"></path>
+
+                <rect x="364" y="6" width="158" height="48" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+                <text x="443" y="35" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="600" fill="#171512">Terraform apply</text>
+
+                <path d="M522 30 L540 30" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round"></path>
+                <path d="M546 30 L540 26.5 L540 33.5 Z" fill="#6E6A62"></path>
+
+                <rect x="546" y="6" width="158" height="48" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+                <text x="625" y="35" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="600" fill="#171512">Lambda package</text>
+
+                <path d="M704 30 L722 30" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round"></path>
+                <path d="M728 30 L722 26.5 L722 33.5 Z" fill="#6E6A62"></path>
+
+                <rect x="728" y="6" width="158" height="48" rx="8" fill="#FFFFFF" stroke="#DCE0D8" stroke-width="1"></rect>
+                <text x="807" y="26" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="600" fill="#171512">S3 build and</text>
+                <text x="807" y="42" text-anchor="middle" font-family="Source Sans 3, system-ui, sans-serif" font-size="12" font-weight="600" fill="#171512">CloudFront invalidation</text>
+
+              </svg>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Surface 2, Three decisions -->
+        <div class="surface" style="display:flex; flex-direction:column; gap:0;">
+          <div style="height:52px; background:#E6F1EA; border-radius:11px 11px 0 0; padding:0 36px; display:flex; align-items:center; justify-content:space-between; gap:24px; box-sizing:border-box;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <h2 class="serif" style="margin:0; font-size:22px; line-height:1.2; font-weight:500; color:#171512;">Three decisions</h2>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#6E6A62;">of seven</span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3.5 10 L8 5.5 L12.5 10"></path>
+              </svg>
+            </div>
+          </div>
+
+          <div style="padding:28px 36px 36px 36px; display:flex; flex-direction:column; gap:20px; box-sizing:border-box;">
+
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:20px; align-items:stretch;">
+
+              <div style="border:1px solid #DCE0D8; border-radius:10px; padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:14px;">
+                <h3 class="serif" style="margin:0; font-size:20px; line-height:1.3; font-weight:500; color:#171512;">Always deployed, sessions as data.</h3>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <div class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#2F7A4E;">Chosen</div>
+                  <p class="sans" style="margin:0; font-size:14px; line-height:1.5; font-weight:400; color:#171512;">One deployment that stays up; a session is one row with a token and an expiry.</p>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <div class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#6E6A62;">Instead of</div>
+                  <p class="sans" style="margin:0; font-size:14px; line-height:1.5; font-weight:400; color:#6E6A62;">Spinning up infrastructure per recruiter when a link is needed.</p>
+                </div>
+                <p class="serif" style="margin:0; font-size:16px; line-height:1.5; font-weight:400; color:#171512;">Because: A link is ready the moment the reply is written, revoking is a one-field update, and idle cost is effectively zero on pay-per-use services.</p>
+              </div>
+
+              <div style="border:1px solid #DCE0D8; border-radius:10px; padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:14px;">
+                <h3 class="serif" style="margin:0; font-size:20px; line-height:1.3; font-weight:500; color:#171512;">One DynamoDB table.</h3>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <div class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#2F7A4E;">Chosen</div>
+                  <p class="sans" style="margin:0; font-size:14px; line-height:1.5; font-weight:400; color:#171512;">A single on-demand table designed from the four access patterns.</p>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <div class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#6E6A62;">Instead of</div>
+                  <p class="sans" style="margin:0; font-size:14px; line-height:1.5; font-weight:400; color:#6E6A62;">Postgres on RDS, or SQLite on the Lambda filesystem.</p>
+                </div>
+                <p class="serif" style="margin:0; font-size:16px; line-height:1.5; font-weight:400; color:#171512;">Because: No idle charge, no VPC or connection pooling beside Lambda, and no durable disk was needed. The trade is that new access patterns need design, not a migration.</p>
+              </div>
+
+              <div style="border:1px solid #DCE0D8; border-radius:10px; padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:14px;">
+                <h3 class="serif" style="margin:0; font-size:20px; line-height:1.3; font-weight:500; color:#171512;">Private content, public code.</h3>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <div class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#2F7A4E;">Chosen</div>
+                  <p class="sans" style="margin:0; font-size:14px; line-height:1.5; font-weight:400; color:#171512;">Real content in a private repo and bucket, served only through the token-gated API.</p>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <div class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#6E6A62;">Instead of</div>
+                  <p class="sans" style="margin:0; font-size:14px; line-height:1.5; font-weight:400; color:#6E6A62;">Bundling content into the JavaScript, or keeping the whole repo private.</p>
+                </div>
+                <p class="serif" style="margin:0; font-size:16px; line-height:1.5; font-weight:400; color:#171512;">Because: The code stays demonstrable, the content stays private, and a content edit is an upload rather than a deploy.</p>
+              </div>
+
+            </div>
+
+            <p class="sans" style="margin:0; font-size:15px; line-height:1.5; font-weight:400; color:#6E6A62;">The other four, and the options each one rejected, are in the repo as dated <a href="#" style="font-weight:400;">decision records</a>.</p>
+
+          </div>
+        </div>
+
+        <!-- Surface 3, How AI was used -->
+        <div class="surface" style="display:flex; flex-direction:column; gap:0;">
+          <div style="height:52px; background:#E6F1EA; border-radius:11px 11px 0 0; padding:0 36px; display:flex; align-items:center; justify-content:space-between; gap:24px; box-sizing:border-box;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <h2 class="serif" style="margin:0; font-size:22px; line-height:1.2; font-weight:500; color:#171512;">How AI was used</h2>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3.5 10 L8 5.5 L12.5 10"></path>
+              </svg>
+            </div>
+          </div>
+          <div style="padding:28px 36px 36px 36px; display:flex; flex-direction:column; gap:16px; box-sizing:border-box;">
+            <p class="serif" style="margin:0; font-size:17px; line-height:1.6; font-weight:400; color:#171512;">I built this with an AI assistant in the loop, and I want to be precise about the split. The idea, the architecture, and every decision are mine, written up as decision records with the options I rejected. The assistant wrote scaffolding, tests, and infrastructure from those decisions, and critiqued my drafts of the recruiter-facing answers without writing them. Nothing merged that I cannot explain at a whiteboard.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer strip, on the ground -->
+      <div style="padding:40px 0 40px 0; display:flex; flex-direction:column; align-items:center; gap:10px; box-sizing:border-box;">
+        <div style="display:flex; align-items:center; justify-content:center; gap:24px;">
+          <a class="sans" href="#" style="font-size:15px; line-height:1.4; font-weight:600; color:#2F7A4E;">Source on GitHub</a>
+          <a class="sans" href="#" style="font-size:15px; line-height:1.4; font-weight:600; color:#2F7A4E;">Decision records</a>
+          <a class="sans" href="mailto:hello@example.com" style="font-size:15px; line-height:1.4; font-weight:600; color:#2F7A4E;">Feedback on this page</a>
+        </div>
+        <div class="sans" style="font-size:13px; line-height:1.4; font-weight:400; color:#6E6A62;">Built by the candidate.</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
