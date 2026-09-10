@@ -16,5 +16,7 @@ dates, and answers are fictional.
 | `Loading.dc.html` | Loading skeleton |
 | `Expired.dc.html` | Expired or revoked link |
 | `NotFound.dc.html` | Unknown link |
+| `HowIBuiltIt.dc.html` | Root page, how it was built, desktop |
+| `HowIBuiltItMobile.dc.html` | Root page at 390px |
 
 The tokens and rules these boards follow are in [../design-system.md](../design-system.md).
