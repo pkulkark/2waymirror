@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #1F3A93; text-decoration: none; }
+    a:hover { color: #14275e; text-decoration: underline; }
+    .rs-label { font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 14px; color: #6B6862; }
+    .rs-sub { font-family: 'Source Sans 3', sans-serif; font-weight: 400; font-size: 15px; color: #6B6862; }
+    .rs-tab { font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 16px; color: #6B6862; }
+    .rs-field { font-family: 'Newsreader', serif; font-size: 16px; color: #1C1B19; }
+  </style>
+</helmet>
+<div style="width:1280px; min-height:1800px; background:#FAFAF7; font-family:'Newsreader', serif; color:#1C1B19; box-sizing:border-box;">
+
+  <div style="width:1280px; box-sizing:border-box; padding:56px 120px 0 120px;">
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:40px;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-family:'Newsreader', serif; font-weight:500; font-size:40px; line-height:1.1; color:#1C1B19;">Jordan Sample</div>
+        <div style="font-family:'Newsreader', serif; font-weight:400; font-size:18px; color:#6B6862; font-style:italic;">Backend engineer, distributed systems and developer platforms</div>
+        <div style="display:flex; gap:20px; margin-top:6px;">
+          <a href="#" style="display:flex; align-items:center; gap:6px; font-family:'Source Sans 3', sans-serif; font-weight:600; font-size:14px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="1.5"></rect><path d="M4 6l8 7 8-7"></path></svg>
+            Email
+          </a>
+          <a href="#" style="display:flex; align-items:center; gap:6px; font-family:'Source Sans 3', sans-serif; font-weight:600; font-size:14px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2C6.5 2 2 6.5 2 12c0 4.4 2.9 8.1 6.9 9.4.3.1.7-.1.7-.5v-1.7c-2.8.6-3.4-1.2-3.4-1.2-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.4-1.1.6-1.3-2.3-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.5-1.3.1-2.7 0 0 .9-.3 2.7.9.8-.2 1.6-.3 2.5-.3s1.7.1 2.5.3c1.9-1.2 2.7-.9 2.7-.9.6 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.8v2.6c0 .4.3.6.7.5C19.1 20.1 22 16.4 22 12c0-5.5-4.5-10-10-10z"></path></svg>
+            GitHub
+          </a>
+          <a href="#" style="display:flex; align-items:center; gap:6px; font-family:'Source Sans 3', sans-serif; font-weight:600; font-size:14px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="7" y1="10" x2="7" y2="17"></line><circle cx="7" cy="6.5" r="0.6"></circle><line x1="12" y1="10" x2="12" y2="17"></line><path d="M12 13c0-1.7 1.3-3 3-3s3 1.3 3 3v4"></path></svg>
+            LinkedIn
+          </a>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:320px;">
+        <div style="font-family:'Newsreader', serif; font-weight:400; font-style:italic; font-size:22px; color:#1C1B19; text-align:right;">Prepared for Acme Corp</div>
+        <div style="font-family:'Newsreader', serif; font-weight:400; font-style:italic; font-size:22px; color:#1C1B19; text-align:right;">for Casey Morgan</div>
+        <div style="font-family:'Source Sans 3', sans-serif; font-weight:400; font-size:15px; color:#6B6862; margin-top:4px;">This link works until 15 September</div>
+      </div>
+    </div>
+
+    <div style="height:1px; background:#D9D6CE; width:100%; margin-top:36px;"></div>
+
+    <div style="display:flex; gap:32px; margin-top:22px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+        <span class="rs-tab" style="color:#1C1B19;">Screening</span>
+        <div style="height:2px; width:100%; background:#1F3A93;"></div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding-bottom:2px;">
+        <span class="rs-tab">Behavioral</span>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding-bottom:2px;">
+        <span class="rs-tab">Project deep dive</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="width:680px; margin:0 auto 0 120px; box-sizing:border-box; padding-top:56px; display:flex; flex-direction:column; gap:56px;">
+
+    <div style="display:flex; flex-direction:column;">
+      <div style="font-family:'Newsreader', serif; font-weight:500; font-size:26px; color:#1C1B19; margin-bottom:24px;">Logistics</div>
+
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="rs-label">Availability</div>
+          <div style="font-family:'Newsreader', serif; font-size:18px; color:#1C1B19;">One month notice at current role</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="rs-label">Compensation</div>
+          <div style="font-family:'Newsreader', serif; font-size:18px; color:#1C1B19;">EUR 70,000 to 85,000 base, open to discussing total comp</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="rs-label">Work authorization</div>
+          <div style="font-family:'Newsreader', serif; font-size:18px; color:#1C1B19;">EU citizen, no sponsorship required</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="rs-label">Location preference</div>
+          <div style="font-family:'Newsreader', serif; font-size:18px; color:#1C1B19;">Remote within the EU, or hybrid in Lisbon</div>
+        </div>
+      </div>
+
+      <div style="height:1px; background:#D9D6CE; width:100%; margin-top:32px;"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column;">
+      <div style="font-family:'Newsreader', serif; font-weight:500; font-size:26px; color:#1C1B19; margin-bottom:28px;">Initial conversation</div>
+
+      <div style="display:flex; flex-direction:column; gap:36px;">
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="font-family:'Newsreader', serif; font-weight:500; font-size:20px; color:#1C1B19;">Why are you leaving your current role?</div>
+          <div style="font-family:'Newsreader', serif; font-weight:400; font-style:italic; font-size:19px; color:#1C1B19; line-height:1.45;">Four years on one platform team, and the next step I want is not open there.</div>
+          <div style="font-family:'Newsreader', serif; font-size:18px; line-height:1.55; color:#1C1B19; margin-top:6px;">
+            <p style="margin:0 0 16px 0;">I joined to build the internal developer platform from nothing, and over four years it grew from a deploy script to the paved road for forty services. That work is done in the sense that matters: the team runs it well without me in the loop, and the roadmap is now about polish rather than shape.</p>
+            <p style="margin:0;">What I want next is a problem where the shape is still open, on a team small enough that the architecture is a conversation rather than a ticket. The migration I led last year<sup style="color:#1F3A93; font-size:13px;">1</sup> was the closest I got to that here, and it is the kind of work I want to do full time.</p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; margin-top:10px;">
+            <div style="font-family:'Newsreader', serif; font-size:16px; color:#1C1B19;">
+              <span style="color:#1F3A93;">1.</span> Public writeup of the migration <span style="color:#6B6862; font-style:italic;">(writeup)</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="font-family:'Newsreader', serif; font-weight:500; font-size:20px; color:#1C1B19;">What do you want in your next role?</div>
+          <div style="font-family:'Newsreader', serif; font-weight:400; font-style:italic; font-size:19px; color:#1C1B19; line-height:1.45;">Ownership of a system end to end, a say in its architecture, and a team that ships.</div>
+          <div style="font-family:'Newsreader', serif; font-size:18px; line-height:1.55; color:#1C1B19; margin-top:6px;">
+            <p style="margin:0;">Three things. Owning something end to end, from the first design conversation to the on-call rota. A real seat at architecture decisions, which means being in the room early rather than reviewing the outcome. And a team that ships regularly enough that decisions get tested by users instead of by debate. Remote within the EU is the constraint; everything else is negotiable.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column;">
+      <div style="font-family:'Newsreader', serif; font-weight:500; font-size:26px; color:#1C1B19; margin-bottom:12px;">Questions for you</div>
+      <div style="font-family:'Newsreader', serif; font-size:18px; color:#6B6862; margin-bottom:28px;">Answers stay editable until the link expires.</div>
+
+      <div style="display:flex; flex-direction:column; gap:28px;">
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline;">
+            <div class="rs-label" style="color:#1C1B19;">How is the engineering team structured, and who would I work with day to day?</div>
+            <div style="font-family:'Source Sans 3', sans-serif; font-weight:600; font-size:12px; color:#1F3A93; white-space:nowrap; margin-left:16px;">Required</div>
+          </div>
+          <div style="border:1px solid #D9D6CE; border-radius:4px; background:#FFFFFF; width:100%; height:88px; box-sizing:border-box;"></div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline;">
+            <div class="rs-label" style="color:#1C1B19;">What does the on-call rotation look like, and how is it compensated?</div>
+            <div style="font-family:'Source Sans 3', sans-serif; font-weight:600; font-size:12px; color:#1F3A93; white-space:nowrap; margin-left:16px;">Required</div>
+          </div>
+          <div style="border:1px solid #D9D6CE; border-radius:4px; background:#FFFFFF; width:100%; height:88px; box-sizing:border-box;"></div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div class="rs-label" style="color:#1C1B19;">What does a promotion path look like for this role over the next two years?</div>
+          <div style="border:1px solid #D9D6CE; border-radius:4px; background:#FFFFFF; width:100%; height:88px; box-sizing:border-box;"></div>
+        </div>
+
+      </div>
+
+      <div style="margin-top:32px;">
+        <div style="display:inline-flex; align-items:center; justify-content:center; background:#1F3A93; color:#FFFFFF; font-family:'Source Sans 3', sans-serif; font-weight:600; font-size:16px; height:44px; padding:0 28px; border-radius:6px;">Send answers</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="width:680px; margin:0 auto 0 120px; box-sizing:border-box; padding:56px 0 64px 0;">
+    <div style="height:1px; background:#D9D6CE; width:100%; margin-bottom:24px;"></div>
+    <div style="font-family:'Source Sans 3', sans-serif; font-weight:400; font-size:14px; color:#6B6862;">
+      Built by the candidate. <a href="#" style="font-weight:600;">How this page was made</a>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

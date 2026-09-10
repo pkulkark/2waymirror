@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Serif+4:ital,wght@0,400;1,400&display=swap">
+  <style>
+    body { margin: 0; background: #FBFAF8; }
+    a { color: #2F7A4E; text-decoration: none; }
+    a:hover { color: #17512F; text-decoration: underline; }
+    .tab { color: #6E6A62; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 500; font-size: 17px; text-decoration: none; padding-bottom: 12px; border-bottom: 3px solid transparent; }
+    .tab-active { color: #171512; border-bottom: 3px solid #2F7A4E; }
+    .field-dark { background: #1B2A27; border: 1px solid #3A4A45; border-radius: 6px; }
+    .field-dark::placeholder { color: #A9B3AE; }
+  </style>
+</helmet>
+<div style="width:1280px; min-height:1800px; background:#FBFAF8; font-family:'Source Serif 4', serif; color:#171512;">
+
+  <!-- Header -->
+  <div style="padding:64px 120px 0 120px;">
+    <div style="display:flex; gap:64px;">
+      <div style="flex:1 1 0; padding-right:64px; border-right:1px solid #E2DED6;">
+        <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:700; font-size:44px; letter-spacing:-0.02em; font-optical-sizing:auto; color:#171512;">Jordan Sample</div>
+        <div style="font-family:'Source Serif 4', serif; font-style:italic; font-size:19px; color:#6E6A62; margin-top:10px;">Backend engineer, distributed systems and developer platforms</div>
+        <div style="display:flex; gap:28px; margin-top:22px;">
+          <a href="#" style="display:flex; align-items:center; gap:7px; font-family:'Bricolage Grotesque', sans-serif; font-size:14px; font-weight:500;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"></path><path d="M4 6l8 7 8-7"></path></svg>
+            Email
+          </a>
+          <a href="#" style="display:flex; align-items:center; gap:7px; font-family:'Bricolage Grotesque', sans-serif; font-size:14px; font-weight:500;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 0-3.16 19.5c.5.1.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.1-.65.35-1.08.63-1.33-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.03a9.6 9.6 0 0 1 5 0c1.9-1.3 2.75-1.03 2.75-1.03.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.35 4.68-4.58 4.93.36.31.68.92.68 1.85v2.75c0 .26.18.58.69.48A10 10 0 0 0 12 2z"></path></svg>
+            GitHub
+          </a>
+          <a href="#" style="display:flex; align-items:center; gap:7px; font-family:'Bricolage Grotesque', sans-serif; font-size:14px; font-weight:500;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M8 11v5"></path><path d="M8 8v.01"></path><path d="M12 16v-5"></path><path d="M16 16v-3a2 2 0 0 0-4 0"></path></svg>
+            LinkedIn
+          </a>
+        </div>
+      </div>
+      <div style="flex:0 0 360px; text-align:right;">
+        <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:700; font-size:28px; color:#171512;">Prepared for Acme Corp</div>
+        <div style="font-family:'Source Serif 4', serif; font-size:18px; color:#6E6A62; margin-top:8px;">for Casey Morgan</div>
+        <div style="font-family:'Source Serif 4', serif; font-style:italic; font-size:16px; color:#6E6A62; margin-top:10px;">This link works until 15 September.</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex; gap:36px; margin-top:44px; border-bottom:1px solid #E2DED6;">
+      <a href="#" class="tab tab-active">Screening</a>
+      <a href="#" class="tab">Behavioral</a>
+      <a href="#" class="tab">Project deep dive</a>
+    </div>
+  </div>
+
+  <!-- Logistics -->
+  <div style="padding:56px 120px 0 120px;">
+    <div style="max-width:680px;">
+      <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:700; font-size:28px; color:#171512; margin-bottom:28px;">Logistics</div>
+      <div style="display:flex; flex-direction:column; gap:22px;">
+        <div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:14px; color:#6E6A62;">Availability</div>
+          <div style="font-family:'Source Serif 4', serif; font-size:18px; color:#171512; margin-top:4px;">One month notice at current role</div>
+        </div>
+        <div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:14px; color:#6E6A62;">Compensation</div>
+          <div style="font-family:'Source Serif 4', serif; font-size:18px; color:#171512; margin-top:4px;">EUR 70,000 to 85,000 base, open to discussing total comp</div>
+        </div>
+        <div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:14px; color:#6E6A62;">Work authorization</div>
+          <div style="font-family:'Source Serif 4', serif; font-size:18px; color:#171512; margin-top:4px;">EU citizen, no sponsorship required</div>
+        </div>
+        <div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:14px; color:#6E6A62;">Location preference</div>
+          <div style="font-family:'Source Serif 4', serif; font-size:18px; color:#171512; margin-top:4px;">Remote within the EU, or hybrid in Lisbon</div>
+        </div>
+      </div>
+      <div style="height:1px; background:#E2DED6; margin-top:36px;"></div>
+    </div>
+  </div>
+
+  <!-- Initial conversation -->
+  <div style="padding:64px 120px 0 120px;">
+    <div style="max-width:680px;">
+      <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:700; font-size:28px; color:#171512; margin-bottom:36px;">Initial conversation</div>
+
+      <!-- Answer 1 -->
+      <div style="margin-bottom:52px;">
+        <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:20px; color:#171512; margin-bottom:14px;">Why are you leaving your current role?</div>
+        <div style="font-family:'Source Serif 4', serif; font-style:italic; font-size:19px; color:#171512; margin-bottom:16px;">Four years on one platform team, and the next step I want is not open there.</div>
+        <div style="font-family:'Source Serif 4', serif; font-size:18px; line-height:1.6; color:#171512;">
+          <p style="margin:0 0 16px 0;">I joined to build the internal developer platform from nothing, and over four years it grew from a deploy script to the paved road for forty services. That work is done in the sense that matters: the team runs it well without me in the loop, and the roadmap is now about polish rather than shape.</p>
+          <p style="margin:0;">What I want next is a problem where the shape is still open, on a team small enough that the architecture is a conversation rather than a ticket. The migration I led last year<sup style="color:#2F7A4E; font-weight:600;">1</sup> was the closest I got to that here, and it is the kind of work I want to do full time.</p>
+        </div>
+        <div style="margin-top:20px;">
+          <div style="display:flex; gap:10px; font-family:'Source Serif 4', serif; font-size:16px; color:#171512;">
+            <span style="color:#2F7A4E; font-weight:600; font-family:'Bricolage Grotesque', sans-serif;">1.</span>
+            <span>Public writeup of the migration <span style="color:#6E6A62; font-style:italic;">(writeup)</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Answer 2 -->
+      <div>
+        <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:20px; color:#171512; margin-bottom:14px;">What do you want in your next role?</div>
+        <div style="font-family:'Source Serif 4', serif; font-style:italic; font-size:19px; color:#171512; margin-bottom:16px;">Ownership of a system end to end, a say in its architecture, and a team that ships.</div>
+        <div style="font-family:'Source Serif 4', serif; font-size:18px; line-height:1.6; color:#171512;">
+          <p style="margin:0;">Three things. Owning something end to end, from the first design conversation to the on-call rota. A real seat at architecture decisions, which means being in the room early rather than reviewing the outcome. And a team that ships regularly enough that decisions get tested by users instead of by debate. Remote within the EU is the constraint; everything else is negotiable.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Questions for you: dark panel, full bleed -->
+  <div style="width:1280px; background:#14211F; margin-top:80px; padding:80px 120px;">
+    <div style="max-width:680px;">
+      <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:700; font-size:28px; color:#F2F0EA; margin-bottom:14px;">Questions for you</div>
+      <div style="font-family:'Source Serif 4', serif; font-style:italic; font-size:19px; color:#A9B3AE; margin-bottom:40px;">Answers stay editable until the link expires.</div>
+
+      <div style="display:flex; flex-direction:column; gap:32px;">
+        <div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:20px; color:#F2F0EA; margin-bottom:6px;">How is the engineering team structured, and who would I work with day to day?</div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:14px; color:#2F7A4E; margin-bottom:12px;">Required</div>
+          <div class="field-dark" style="height:96px;"></div>
+        </div>
+        <div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:20px; color:#F2F0EA; margin-bottom:6px;">What does the on-call rotation look like, and how is it compensated?</div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:14px; color:#2F7A4E; margin-bottom:12px;">Required</div>
+          <div class="field-dark" style="height:96px;"></div>
+        </div>
+        <div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:20px; color:#F2F0EA; margin-bottom:6px;">What does a promotion path look like for this role over the next two years?</div>
+          <div style="font-family:'Bricolage Grotesque', sans-serif; font-weight:500; font-size:14px; color:#A9B3AE; margin-bottom:12px;">Optional</div>
+          <div class="field-dark" style="height:96px;"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:44px;">
+        <div style="display:inline-block; background:#F2F0EA; color:#14211F; font-family:'Bricolage Grotesque', sans-serif; font-weight:700; font-size:16px; padding:14px 32px; border-radius:6px;">Send answers</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="padding:40px 120px 64px 120px;">
+    <div style="font-family:'Source Serif 4', serif; font-size:15px; color:#6E6A62;">
+      Built by the candidate. <a href="#">How this page was made</a>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Source+Sans+3:wght@400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #2F7A4E; text-decoration: none; }
+    a:hover { color: #256640; text-decoration: underline; }
+    .serif { font-family: "Newsreader", Georgia, serif; }
+    .sans { font-family: "Source Sans 3", system-ui, sans-serif; }
+    .surface { background: #FFFFFF; border: 1px solid #DCE0D8; border-radius: 12px; box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="width:1280px; min-height:720px; background:#E3E7E1; color:#171512; box-sizing:border-box; display:flex; flex-direction:column; gap:0;">
+
+  <!-- App bar, one dark block, row 1 only -->
+  <div style="background:#14211F; display:flex; flex-direction:column; align-items:center; gap:0; box-sizing:border-box;">
+    <div style="width:960px; height:56px; display:flex; align-items:center; justify-content:space-between; gap:24px; box-sizing:border-box;">
+      <div class="serif" style="font-size:20px; line-height:1; font-weight:500; color:#F2F0EA;">2WayMirror</div>
+    </div>
+  </div>
+
+  <!-- Page body -->
+  <div style="display:flex; flex-direction:column; align-items:center; gap:0; flex:1 1 auto;">
+    <div style="width:960px; display:flex; flex-direction:column; align-items:center; box-sizing:border-box;">
+
+      <!-- Centered surface -->
+      <div class="surface" style="width:560px; padding:48px; margin-top:96px; display:flex; flex-direction:column; gap:16px; box-sizing:border-box;">
+        <h1 class="serif" style="margin:0; font-size:28px; line-height:1.2; font-weight:500; color:#171512;">This link does not match a session</h1>
+        <p class="serif" style="margin:0; font-size:17px; line-height:1.6; font-weight:400; color:#171512;">Check the address you were sent, or ask the person who sent it for a new link.</p>
+      </div>
+
+      <!-- Footer -->
+      <div style="display:flex; align-items:center; justify-content:center; gap:6px; padding:40px 0 40px 0;">
+        <span class="sans" style="font-size:13px; line-height:1.4; font-weight:400; color:#6E6A62;">Built by the candidate.</span>
+        <a class="sans" href="#" style="font-size:13px; line-height:1.4; font-weight:400; color:#2F7A4E;">How this page was made</a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

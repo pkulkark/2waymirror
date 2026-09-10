@@ -1,0 +1,232 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Source+Sans+3:wght@400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #2F7A4E; text-decoration: none; }
+    a:hover { color: #256640; text-decoration: underline; }
+    .serif { font-family: "Newsreader", Georgia, serif; }
+    .sans { font-family: "Source Sans 3", system-ui, sans-serif; }
+    .surface { background: #FFFFFF; border: 1px solid #DCE0D8; border-radius: 12px; box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="width:1280px; min-height:2100px; background:#E3E7E1; color:#171512; box-sizing:border-box; display:flex; flex-direction:column; gap:0;">
+
+  <!-- App bar, one dark block with two rows -->
+  <div style="background:#14211F; display:flex; flex-direction:column; align-items:center; gap:0; box-sizing:border-box;">
+
+    <!-- Row 1, identity and chips -->
+    <div style="width:960px; height:56px; display:flex; align-items:center; justify-content:space-between; gap:24px; box-sizing:border-box;">
+      <div class="serif" style="font-size:20px; line-height:1; font-weight:500; color:#F2F0EA;">Jordan Sample</div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="sans" style="background:transparent; border:1px solid #3A4A45; color:#A9B3AE; font-size:13px; line-height:1.4; font-weight:600; padding:6px 12px; border-radius:999px;">0 of 2 required answered</div>
+        <div class="sans" style="background:#E6F1EA; color:#2F7A4E; font-size:13px; line-height:1.4; font-weight:600; padding:6px 12px; border-radius:999px;">Acme Corp, until 15 Sep</div>
+      </div>
+    </div>
+
+    <!-- Row 2, headline and profile links -->
+    <div style="width:960px; padding:0 0 16px 0; display:flex; flex-direction:column; align-items:flex-start; gap:10px; box-sizing:border-box;">
+        <div class="sans" style="font-size:15px; line-height:1.4; font-weight:400; color:#A9B3AE;">Backend engineer, distributed systems and developer platforms</div>
+        <div style="display:flex; align-items:center; gap:20px;">
+          <a class="sans" href="#" style="display:flex; align-items:center; gap:7px; font-size:15px; line-height:1.4; font-weight:600; color:#F2F0EA;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#A9B3AE" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="1.75" y="3.25" width="12.5" height="9.5" rx="1.5"></rect>
+              <path d="M2.25 4.5 L8 8.75 L13.75 4.5"></path>
+            </svg>
+            <span>Email</span>
+          </a>
+          <a class="sans" href="#" style="display:flex; align-items:center; gap:7px; font-size:15px; line-height:1.4; font-weight:600; color:#F2F0EA;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#A9B3AE" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="4" cy="3.5" r="1.75"></circle>
+              <circle cx="4" cy="12.5" r="1.75"></circle>
+              <circle cx="12" cy="5.5" r="1.75"></circle>
+              <path d="M4 5.25 L4 10.75"></path>
+              <path d="M12 7.25 C12 10.25 9 9.5 8 11"></path>
+            </svg>
+            <span>GitHub</span>
+          </a>
+          <a class="sans" href="#" style="display:flex; align-items:center; gap:7px; font-size:15px; line-height:1.4; font-weight:600; color:#F2F0EA;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#A9B3AE" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="1.75" y="1.75" width="12.5" height="12.5" rx="2"></rect>
+              <path d="M4.75 6.75 L4.75 11.25"></path>
+              <path d="M4.75 4.6 L4.76 4.6"></path>
+              <path d="M7.75 11.25 L7.75 6.75"></path>
+              <path d="M7.75 8.5 C7.75 7.5 8.5 6.9 9.5 6.9 C10.6 6.9 11.25 7.6 11.25 8.75 L11.25 11.25"></path>
+            </svg>
+            <span>LinkedIn</span>
+          </a>
+        </div>
+      </div>
+
+    <!-- Row 3, tabs -->
+    <div style="width:960px; height:44px; display:flex; align-items:stretch; gap:32px; box-sizing:border-box;">
+      <div style="display:flex; align-items:center; gap:8px; border-bottom:2px solid transparent; box-sizing:border-box;">
+        <span class="sans" style="font-size:15px; line-height:1.4; font-weight:600; color:#A9B3AE;">Screening</span>
+        <span class="sans" style="background:#1B2A27; color:#A9B3AE; font-size:12px; line-height:1.4; font-weight:600; padding:2px 8px; border-radius:999px;">5</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; border-bottom:2px solid #2F7A4E; box-sizing:border-box;">
+        <span class="sans" style="font-size:15px; line-height:1.4; font-weight:600; color:#F2F0EA;">Behavioral</span>
+        <span class="sans" style="background:#1B2A27; color:#A9B3AE; font-size:12px; line-height:1.4; font-weight:600; padding:2px 8px; border-radius:999px;">6</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; border-bottom:2px solid transparent; box-sizing:border-box;">
+        <span class="sans" style="font-size:15px; line-height:1.4; font-weight:600; color:#A9B3AE;">Project deep dive</span>
+        <span class="sans" style="background:#1B2A27; color:#A9B3AE; font-size:12px; line-height:1.4; font-weight:600; padding:2px 8px; border-radius:999px;">1</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Page body -->
+  <div style="display:flex; flex-direction:column; align-items:center; gap:0;">
+    <div style="width:960px; padding-top:24px; display:flex; flex-direction:column; gap:24px; box-sizing:border-box;">
+
+      <!-- Behavioral surface -->
+      <div class="surface" style="display:flex; flex-direction:column; gap:0;">
+        <div style="height:52px; background:#E6F1EA; border-radius:11px 11px 0 0; padding:0 36px; display:flex; align-items:center; justify-content:space-between; gap:24px; box-sizing:border-box;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#2F7A4E" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="9" cy="5.5" r="3"></circle>
+              <path d="M3 15.5 C3 12 5.7 10 9 10 C12.3 10 15 12 15 15.5"></path>
+            </svg>
+            <h2 class="serif" style="margin:0; font-size:22px; line-height:1.2; font-weight:500; color:#171512;">Behavioral</h2>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#6E6A62;">3 answers</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3.5 10 L8 5.5 L12.5 10"></path>
+            </svg>
+          </div>
+        </div>
+        <div style="padding:28px 36px 36px 36px; display:flex; flex-direction:column; gap:0; box-sizing:border-box;">
+
+          <!-- Answer 1 -->
+          <div style="display:flex; flex-direction:column; gap:12px; padding-bottom:28px; border-bottom:1px solid #E6E3DC;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:24px;">
+              <h3 class="serif" style="margin:0; font-size:20px; line-height:1.3; font-weight:500; color:#171512;">Describe an incident you handled and what you changed afterward.</h3>
+              <div style="display:flex; align-items:center; gap:12px; flex:0 0 auto;">
+                <span class="sans" style="font-size:13px; line-height:1.4; font-weight:400; color:#6E6A62;">1 evidence</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3.5 10 L8 5.5 L12.5 10"></path>
+                </svg>
+              </div>
+            </div>
+            <p class="serif" style="margin:0; font-size:18px; line-height:1.45; font-weight:400; font-style:italic; color:#171512;">A failed database failover led to a postmortem and a runbook still in use today.</p>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              <p class="serif" style="margin:0; font-size:17px; line-height:1.6; font-weight:400; color:#171512;">A primary database failed over during a deploy window and the replica came up read only, so every write in the product failed for eleven minutes. I was on call, rolled the deploy back, and promoted the replica by hand<sup style="font-size:11px; line-height:0; color:#2F7A4E; vertical-align:super;">1</sup>. Afterwards I ran the postmortem and wrote the failover runbook that the team still uses, with the manual promotion steps and the checks that would have caught the read-only state in the first minute.</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; padding-top:8px;">
+              <div class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#6E6A62;">Evidence</div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="sans" style="width:22px; height:22px; border-radius:999px; background:#E6F1EA; color:#2F7A4E; font-size:12px; line-height:1; font-weight:600; display:flex; align-items:center; justify-content:center; flex:0 0 auto;">1</div>
+                <a class="sans" href="#" style="display:flex; align-items:center; gap:7px; font-size:15px; line-height:1.4; font-weight:400; color:#2F7A4E;">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#2F7A4E" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6.75 9.25 C7.6 10.1 9 10.1 9.85 9.25 L12.4 6.7 C13.25 5.85 13.25 4.45 12.4 3.6 C11.55 2.75 10.15 2.75 9.3 3.6 L8.5 4.4"></path>
+                    <path d="M9.25 6.75 C8.4 5.9 7 5.9 6.15 6.75 L3.6 9.3 C2.75 10.15 2.75 11.55 3.6 12.4 C4.45 13.25 5.85 13.25 6.7 12.4 L7.5 11.6"></path>
+                  </svg>
+                  <span>Failover runbook, redacted</span>
+                </a>
+                <span class="sans" style="font-size:13px; line-height:1.4; font-weight:400; color:#6E6A62;">writeup</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Answer 2 -->
+          <div style="display:flex; flex-direction:column; gap:12px; padding-top:28px; padding-bottom:28px; border-bottom:1px solid #E6E3DC;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:24px;">
+              <h3 class="serif" style="margin:0; font-size:20px; line-height:1.3; font-weight:500; color:#171512;">What kind of team and manager do you work best with?</h3>
+              <div style="display:flex; align-items:center; gap:12px; flex:0 0 auto;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3.5 10 L8 5.5 L12.5 10"></path>
+                </svg>
+              </div>
+            </div>
+            <p class="serif" style="margin:0; font-size:18px; line-height:1.45; font-weight:400; font-style:italic; color:#171512;">Async first, written decisions, and a manager who sets direction and gets out of the way.</p>
+            <p class="serif" style="margin:0; font-size:17px; line-height:1.6; font-weight:400; color:#171512;">I do my best work on teams that write things down. Decisions in a doc with the options that were rejected, a weekly written update instead of a status meeting, and a manager who sets the direction clearly and then trusts the team to get there. I have worked in the other mode, and I can, but I am slower and less honest in it.</p>
+          </div>
+
+          <!-- Answer 3 -->
+          <div style="display:flex; flex-direction:column; gap:12px; padding-top:28px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:24px;">
+              <h3 class="serif" style="margin:0; font-size:20px; line-height:1.3; font-weight:500; color:#171512;">Tell me about a time you disagreed with a technical decision.</h3>
+              <div style="display:flex; align-items:center; gap:12px; flex:0 0 auto;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6E6A62" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3.5 10 L8 5.5 L12.5 10"></path>
+                </svg>
+              </div>
+            </div>
+            <p class="serif" style="margin:0; font-size:18px; line-height:1.45; font-weight:400; font-style:italic; color:#171512;">Argued against a rewrite, lost, and then made the rewrite succeed.</p>
+            <p class="serif" style="margin:0; font-size:17px; line-height:1.6; font-weight:400; color:#171512;">Two years ago the team decided to rewrite the job scheduler rather than fix it. I argued for the fix in the design review, with numbers on the risk, and lost the vote. Once it was decided I took the hardest part of the rewrite, the migration of running jobs, so the thing I was most worried about was the thing I owned. It shipped late but without an incident, and I would make the same call about how to disagree again.</p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Questions surface, dark -->
+      <div style="background:#14211F; border-radius:12px; box-sizing:border-box; display:flex; flex-direction:column; gap:0;">
+        <div style="height:52px; background:#1B2A27; border-radius:12px 12px 0 0; padding:0 36px; display:flex; align-items:center; justify-content:space-between; gap:24px; box-sizing:border-box;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <h2 class="serif" style="margin:0; font-size:22px; line-height:1.2; font-weight:500; color:#F2F0EA;">Questions for you</h2>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="sans" style="font-size:13px; line-height:1.4; font-weight:600; color:#A9B3AE;">0 of 2 required answered</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#A9B3AE" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3.5 10 L8 5.5 L12.5 10"></path>
+            </svg>
+          </div>
+        </div>
+
+        <div style="padding:28px 36px 36px 36px; display:flex; flex-direction:column; gap:24px; box-sizing:border-box;">
+          <p class="sans" style="margin:0; font-size:15px; line-height:1.4; font-weight:400; color:#A9B3AE;">Answers stay editable until the link expires.</p>
+
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <label class="sans" style="font-size:15px; line-height:1.4; font-weight:600; color:#F2F0EA;">How is the engineering team structured, and who would I work with day to day?</label>
+                <span class="sans" style="font-size:12px; line-height:1.4; font-weight:400; color:#A9B3AE; border:1px solid #3A4A45; border-radius:999px; padding:2px 8px; flex:0 0 auto;">Required</span>
+              </div>
+              <div class="sans" style="height:96px; background:#1B2A27; border:1px solid #3A4A45; border-radius:8px; padding:12px 14px; box-sizing:border-box; font-size:15px; line-height:1.4; font-weight:400; color:#F2F0EA;"></div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <label class="sans" style="font-size:15px; line-height:1.4; font-weight:600; color:#F2F0EA;">What does the on-call rotation look like, and how is it compensated?</label>
+                <span class="sans" style="font-size:12px; line-height:1.4; font-weight:400; color:#A9B3AE; border:1px solid #3A4A45; border-radius:999px; padding:2px 8px; flex:0 0 auto;">Required</span>
+              </div>
+              <div class="sans" style="height:96px; background:#1B2A27; border:1px solid #3A4A45; border-radius:8px; padding:12px 14px; box-sizing:border-box; font-size:15px; line-height:1.4; font-weight:400; color:#F2F0EA;"></div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <label class="sans" style="font-size:15px; line-height:1.4; font-weight:600; color:#F2F0EA;">What does a promotion path look like for this role over the next two years?</label>
+              </div>
+              <div class="sans" style="height:96px; background:#1B2A27; border:1px solid #3A4A45; border-radius:8px; padding:12px 14px; box-sizing:border-box; font-size:15px; line-height:1.4; font-weight:400; color:#F2F0EA;"></div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div class="sans" style="height:44px; background:#F2F0EA; color:#14211F; font-size:15px; line-height:1; font-weight:600; border-radius:8px; padding:0 20px; display:flex; align-items:center; justify-content:center;">Send answers</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="display:flex; align-items:center; justify-content:center; gap:6px; padding:40px 0 40px 0;">
+        <span class="sans" style="font-size:13px; line-height:1.4; font-weight:400; color:#6E6A62;">Built by the candidate.</span>
+        <a class="sans" href="#" style="font-size:13px; line-height:1.4; font-weight:400; color:#2F7A4E;">How this page was made</a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
