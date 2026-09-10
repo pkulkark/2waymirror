@@ -350,7 +350,7 @@ export default function SessionPage() {
     id: section.id,
     label: index === 0 ? 'Screening' : section.title,
     count: section.items.length,
-    to: index === 0 ? `/s/${token}` : `/s/${token}#${section.id}`,
+    to: index === 0 ? `/s/${token}` : `#${section.id}`,
     active: index === 0,
   }))
 

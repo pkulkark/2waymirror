@@ -12,6 +12,7 @@ export interface AppBarTab {
   id: string
   label: string
   count: number
+  /** A route path, or "#id" for a jump within the current page. */
   to: string
   /** Overrides route matching, for tabs that jump within the current page. */
   active?: boolean
@@ -116,16 +117,12 @@ export default function AppBar({
             {tabs?.map((tab) => {
               // An explicit flag wins; otherwise the tab is active when its path is the page.
               const active = tab.active ?? pathname === tab.to
-              return (
-                <Link
-                  key={tab.id}
-                  to={tab.to}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'focus-visible:outline-moss flex items-center gap-2 border-b-2 text-[15px] leading-[1.4] font-semibold focus-visible:outline-2 focus-visible:-outline-offset-2',
-                    active ? 'border-moss text-on-dark' : 'text-on-dark-muted border-transparent',
-                  )}
-                >
+              const className = cn(
+                'focus-visible:outline-moss flex items-center gap-2 border-b-2 text-[15px] leading-[1.4] font-semibold focus-visible:outline-2 focus-visible:-outline-offset-2',
+                active ? 'border-moss text-on-dark' : 'text-on-dark-muted border-transparent',
+              )
+              const label = (
+                <>
                   <span>{tab.label}</span>
                   <span className="bg-dark-input text-on-dark-muted rounded-full px-2 py-0.5 text-[12px] leading-[1.4] font-semibold">
                     {/* The pill shows a bare number; screen readers get the noun with it. */}
@@ -134,6 +131,27 @@ export default function AppBar({
                       {tab.count} {tab.count === 1 ? 'answer' : 'answers'}
                     </span>
                   </span>
+                </>
+              )
+              // A same-page jump ("#section") stays a native anchor so the browser scrolls;
+              // a router link would swallow the click and only rewrite the URL.
+              return tab.to.startsWith('#') ? (
+                <a
+                  key={tab.id}
+                  href={tab.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={className}
+                >
+                  {label}
+                </a>
+              ) : (
+                <Link
+                  key={tab.id}
+                  to={tab.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={className}
+                >
+                  {label}
                 </Link>
               )
             })}

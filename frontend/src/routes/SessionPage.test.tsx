@@ -315,7 +315,7 @@ describe('SessionPage', () => {
 
     const behavioral = screen.getByRole('link', { name: /Behavioral/ })
     // Until #107 adds section routes, later tabs jump to their surface on this page.
-    expect(behavioral).toHaveAttribute('href', '/s/tok123#behavioral')
+    expect(behavioral).toHaveAttribute('href', '#behavioral')
     expect(behavioral).not.toHaveAttribute('aria-current')
     expect(behavioral).toHaveTextContent('1')
     expect(document.getElementById('behavioral')?.tagName).toBe('SECTION')

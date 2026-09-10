@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 
 import AppBar, { type AppBarProps } from '@/components/AppBar'
 
@@ -110,6 +111,23 @@ describe('AppBar', () => {
 
     expect(screen.getByRole('link', { name: /Screening/ })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: /Behavioral/ })).not.toHaveAttribute('aria-current')
+  })
+
+  test('renders a same-page jump as a native anchor so the browser scrolls', async () => {
+    renderAppBar({
+      name: 'Jordan Sample',
+      tabs: [
+        { id: 'intro', label: 'Screening', count: 5, to: '/s/tok123', active: true },
+        { id: 'behavioral', label: 'Behavioral', count: 6, to: '#behavioral', active: false },
+      ],
+    })
+
+    const jump = screen.getByRole('link', { name: /Behavioral/ })
+    expect(jump).toHaveAttribute('href', '#behavioral')
+    const clicked = vi.fn()
+    jump.addEventListener('click', (event) => clicked(event.defaultPrevented))
+    await userEvent.click(jump)
+    expect(clicked).toHaveBeenCalledWith(false)
   })
 
   test('activates a later tab when the route points at it', () => {

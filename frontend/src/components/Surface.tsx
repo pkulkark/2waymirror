@@ -85,7 +85,8 @@ export default function Surface({
     <section
       id={id}
       className={cn(
-        'flex flex-col overflow-hidden rounded-lg',
+        // scroll-mt keeps a jumped-to surface clear of the sticky app bar.
+        'flex scroll-mt-48 flex-col overflow-hidden rounded-lg',
         dark ? 'bg-dark' : 'border-surface-border bg-surface border',
       )}
     >
