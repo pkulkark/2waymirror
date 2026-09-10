@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import pytest
 from moto import mock_aws
 
 from twowaymirror.repository import (
-    AnswersAlreadySubmittedError,
     DynamoDBSessionRepository,
     ensure_table,
 )
@@ -101,12 +99,14 @@ def test_put_and_get_answers(repository: DynamoDBSessionRepository) -> None:
     assert fetched.submitted_at == result.submitted_at
 
 
-def test_put_answers_twice_raises(repository: DynamoDBSessionRepository) -> None:
+def test_put_answers_twice_replaces(repository: DynamoDBSessionRepository) -> None:
     record = repository.create_session(company="Acme", contact="Sam", variant="senior")
     repository.put_answers(record.token, {"team-structure": "first submit"})
+    repository.put_answers(record.token, {"team-structure": "second submit"})
 
-    with pytest.raises(AnswersAlreadySubmittedError):
-        repository.put_answers(record.token, {"team-structure": "second submit"})
+    fetched = repository.get_answers(record.token)
+    assert fetched is not None
+    assert fetched.answers == {"team-structure": "second submit"}
 
 
 def test_new_token_never_starts_with_a_dash_or_underscore() -> None:

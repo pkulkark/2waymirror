@@ -40,6 +40,8 @@ def test_get_session_success(api: tuple[TestClient, DynamoDBSessionRepository]) 
     assert body["session"]["contact"] == "Sam"
     assert body["session"]["variant"] == "senior"
     assert body["session"]["answers_submitted"] is False
+    assert body["session"]["answers"] is None
+    assert body["session"]["submitted_at"] is None
     assert "tenant" not in body["session"]
     assert "ttl" not in body["session"]
     assert "revoked" not in body["session"]
@@ -58,7 +60,10 @@ def test_get_session_reflects_submitted_answers(
     response = client.get(f"/api/sessions/{record.token}")
 
     assert response.status_code == 200
-    assert response.json()["session"]["answers_submitted"] is True
+    session = response.json()["session"]
+    assert session["answers_submitted"] is True
+    assert session["answers"] == {"team-structure": "We work in small squads."}
+    assert session["submitted_at"] is not None
 
 
 def test_get_session_unknown_token_is_404(
@@ -80,6 +85,10 @@ def test_get_session_expired_is_410(api: tuple[TestClient, DynamoDBSessionReposi
     response = client.get(f"/api/sessions/{record.token}")
 
     assert response.status_code == 410
+    body = response.json()
+    assert body["detail"] == "Session expired or revoked."
+    assert body["candidate"] == {"name": "Jordan Sample", "email": "jordan@example.com"}
+    assert body["expires_at"] == record.expires_at.isoformat()
 
 
 def test_get_session_revoked_is_410(api: tuple[TestClient, DynamoDBSessionRepository]) -> None:
@@ -90,6 +99,20 @@ def test_get_session_revoked_is_410(api: tuple[TestClient, DynamoDBSessionReposi
     response = client.get(f"/api/sessions/{record.token}")
 
     assert response.status_code == 410
+    assert response.json()["candidate"]["email"] == "jordan@example.com"
+
+
+def test_get_session_gone_with_undeclared_variant_has_no_candidate(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+) -> None:
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="nope")
+    repository.revoke_session(record.token)
+
+    response = client.get(f"/api/sessions/{record.token}")
+
+    assert response.status_code == 410
+    assert response.json()["candidate"] == {"name": None, "email": None}
 
 
 def test_submit_answers_success(api: tuple[TestClient, DynamoDBSessionRepository]) -> None:
@@ -132,16 +155,19 @@ def test_submit_answers_expired_is_410(api: tuple[TestClient, DynamoDBSessionRep
     assert response.status_code == 410
 
 
-def test_submit_answers_twice_is_409(api: tuple[TestClient, DynamoDBSessionRepository]) -> None:
+def test_submit_answers_twice_replaces(api: tuple[TestClient, DynamoDBSessionRepository]) -> None:
     client, repository = api
     record = repository.create_session(company="Acme", contact="Sam", variant="senior")
-    payload = {"answers": _required_answers(client, record.token)}
-
-    first = client.post(f"/api/sessions/{record.token}/answers", json=payload)
-    second = client.post(f"/api/sessions/{record.token}/answers", json=payload)
+    answers = _required_answers(client, record.token)
+    first = client.post(f"/api/sessions/{record.token}/answers", json={"answers": answers})
+    first_id = next(iter(answers))
+    answers[first_id] = "Revised answer."
+    second = client.post(f"/api/sessions/{record.token}/answers", json={"answers": answers})
 
     assert first.status_code == 201
-    assert second.status_code == 409
+    assert second.status_code == 201
+    session = client.get(f"/api/sessions/{record.token}").json()["session"]
+    assert session["answers"][first_id] == "Revised answer."
 
 
 def test_submit_answers_unknown_question_id_is_422(

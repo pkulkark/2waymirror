@@ -35,6 +35,8 @@ class Session(BaseModel):
     created_at: datetime
     expires_at: datetime
     answers_submitted: bool
+    submitted_at: datetime | None = None
+    answers: dict[str, str] | None = None
 
 
 class QuestionSnapshot(BaseModel):
