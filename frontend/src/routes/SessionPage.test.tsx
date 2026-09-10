@@ -16,7 +16,14 @@ const sample: SessionContentResponse = {
     answers_submitted: false,
   },
   content: {
-    candidate: { name: 'Jordan Sample', headline: 'Senior Backend Engineer' },
+    candidate: {
+      name: 'Jordan Sample',
+      headline: 'Senior Backend Engineer',
+      links: [
+        { label: 'Email', url: 'mailto:jordan@example.com' },
+        { label: 'GitHub', url: 'https://github.com/jordan' },
+      ],
+    },
     logistics: [
       { label: 'Availability', value: 'Two weeks notice' },
       { label: 'Compensation', value: 'EUR 70k' },
@@ -38,6 +45,18 @@ const sample: SessionContentResponse = {
             question: 'What kind of team do you work best with?',
             answer_md: 'Small and async-first.',
             evidence: [{ label: 'Untyped link', url: 'https://example.com/untyped' }],
+          },
+        ],
+      },
+      {
+        id: 'behavioral',
+        title: 'Behavioral',
+        items: [
+          {
+            id: 'conflict',
+            question: 'Tell me about a disagreement you handled well.',
+            answer_md: 'We wrote the tradeoffs down and picked one.',
+            evidence: [],
           },
         ],
       },
@@ -80,7 +99,10 @@ describe('SessionPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(pending))
 
     const { container } = renderAt('tok123')
-    expect(container.querySelector('[data-slot="skeleton"]')).not.toBeNull()
+    const skeleton = container.querySelector('[data-slot="skeleton"]')
+    expect(skeleton).not.toBeNull()
+    // Neutral placeholder colour, not the accent green.
+    expect(skeleton).toHaveClass('bg-skeleton')
 
     resolveFetch(jsonResponse(200, sample))
 
@@ -262,5 +284,159 @@ describe('SessionPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Something went wrong')).toBeInTheDocument()
     })
+  })
+  test('shows the session and status chips in the app bar', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Acme, until 8 Sep')).toBeInTheDocument()
+    // Once as the app bar chip, once as the questions surface count.
+    expect(screen.getAllByText('0 of 1 required answered')).toHaveLength(2)
+    expect(screen.getByRole('link', { name: 'Email' })).toHaveAttribute(
+      'href',
+      'mailto:jordan@example.com',
+    )
+  })
+
+  test('shows a tab per section with item counts, the first one active', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+
+    const screening = screen.getByRole('link', { name: /Screening/ })
+    expect(screening).toHaveAttribute('href', '/s/tok123')
+    expect(screening).toHaveAttribute('aria-current', 'page')
+    expect(screening).toHaveTextContent('2')
+
+    const behavioral = screen.getByRole('link', { name: /Behavioral/ })
+    expect(behavioral).toHaveAttribute('href', '/s/tok123/behavioral')
+    expect(behavioral).not.toHaveAttribute('aria-current')
+    expect(behavioral).toHaveTextContent('1')
+  })
+
+  test('wraps logistics, each section, and the questions form in surfaces', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+
+    const logistics = screen.getByRole('button', { name: /Logistics/ })
+    expect(logistics).toHaveTextContent('2 items')
+    expect(logistics.closest('section')).toHaveTextContent('Two weeks notice')
+
+    expect(screen.getByRole('button', { name: /Initial conversation/ })).toHaveTextContent(
+      '2 answers',
+    )
+
+    const behavioral = screen.getByRole('button', { name: /Behavioral/ })
+    expect(behavioral).toHaveTextContent('1 answer')
+    expect(behavioral.closest('section')).toHaveTextContent(
+      'Tell me about a disagreement you handled well.',
+    )
+
+    const questions = screen.getByRole('button', { name: /Questions for you/ })
+    expect(questions.closest('section')).toHaveClass('bg-dark')
+    expect(questions.closest('section')).toContainElement(
+      screen.getByRole('button', { name: 'Submit answers' }),
+    )
+  })
+
+  test('collapsing a surface hides its body from assistive tech', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+
+    const logistics = screen.getByRole('button', { name: /Logistics/ })
+    await user.click(logistics)
+    expect(logistics).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  test('shows a sent chip and no questions surface once answers are on file', async () => {
+    const submittedSample: SessionContentResponse = {
+      ...sample,
+      session: {
+        ...sample.session,
+        answers_submitted: true,
+        submitted_at: '2026-09-10T00:00:00Z',
+      },
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, submittedSample)))
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByText('Sent 10 September')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole('button', { name: /Questions for you/ })).not.toBeInTheDocument()
+  })
+
+  test('gives each section surface its own icon', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+
+    const intro = screen.getByRole('button', { name: /Initial conversation/ }).querySelector('svg')
+    const behavioral = screen.getByRole('button', { name: /Behavioral/ }).querySelector('svg')
+    expect(intro).not.toBeNull()
+    expect(behavioral).not.toBeNull()
+    expect(intro?.getAttribute('class')).not.toBe(behavioral?.getAttribute('class'))
+  })
+
+  test('dates the sent chip from the timestamp the submit call returned', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      if (!init) return Promise.resolve(jsonResponse(200, sample))
+      return Promise.resolve(jsonResponse(201, { submitted_at: '2026-09-02T00:00:00Z' }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText(/How is the team structured/), 'A small platform team.')
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Sent 2 September')).toBeInTheDocument()
+    })
+  })
+
+  test('falls back to today when a submitted session carries no timestamp', async () => {
+    const submittedSample: SessionContentResponse = {
+      ...sample,
+      session: { ...sample.session, answers_submitted: true, submitted_at: null },
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, submittedSample)))
+    renderAt('tok123')
+
+    const today = new Date()
+    const month = today.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' })
+    const day = today.getUTCDate()
+    await waitFor(() => {
+      expect(screen.getByText(`Sent ${day} ${month}`)).toBeInTheDocument()
+    })
+  })
+
+  test('renders the wordmark bar on a dead end', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(404, { detail: 'nope' })))
+    renderAt('missing')
+    await waitFor(() => {
+      expect(screen.getByText('Session not found')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('heading', { name: '2WayMirror' })).toBeInTheDocument()
+    expect(screen.getByText('Built by the candidate.')).toBeInTheDocument()
   })
 })

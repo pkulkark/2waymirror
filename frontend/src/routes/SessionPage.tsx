@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
+import { Code, FileText, MapPin, MessagesSquare, User, type LucideIcon } from 'lucide-react'
 
 import {
   fetchSession,
@@ -11,10 +12,11 @@ import {
   type Logistics,
   type Session,
 } from '@/api'
+import AppBar, { type AppBarTab } from '@/components/AppBar'
+import Page from '@/components/Page'
+import Surface from '@/components/Surface'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -27,51 +29,106 @@ type PageState =
   | { status: 'submitted'; session: Session; content: Content }
   | { status: 'already_submitted'; session: Session; content: Content }
 
+const SHORT_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+const LONG_MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+/** "15 Sep" for the session chip, "10 September" for the sent chip. Dates are read in UTC. */
+function formatDate(iso: string, months: string[]): string {
+  const date = new Date(iso)
+  return `${date.getUTCDate()} ${months[date.getUTCMonth()]}`
+}
+
+function pluralize(count: number, noun: string): string {
+  return `${count} ${count === 1 ? noun : `${noun}s`}`
+}
+
+/**
+ * Section icons in content order, per design-system.md: speech bubbles for the initial
+ * conversation, a person outline for behavioral, code brackets for the deep dive. Any further
+ * section falls back to a document.
+ */
+const SECTION_ICONS: LucideIcon[] = [MessagesSquare, User, Code]
+
+function sectionIcon(index: number): LucideIcon {
+  return SECTION_ICONS[index] ?? FileText
+}
+
+function WordmarkPage({ children }: { children: ReactNode }) {
+  return <Page appBar={<AppBar />}>{children}</Page>
+}
+
 function LoadingSkeleton() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <WordmarkPage>
       <Skeleton className="h-8 w-2/3" />
-      <Skeleton className="mt-3 h-4 w-1/2" />
-      <Skeleton className="mt-8 h-32 w-full" />
-      <Skeleton className="mt-4 h-32 w-full" />
-    </div>
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-32 w-full" />
+    </WordmarkPage>
   )
 }
 
 function NotFoundState() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <WordmarkPage>
       <Alert variant="destructive">
         <AlertTitle>Session not found</AlertTitle>
         <AlertDescription>
           This link doesn&apos;t match any session. Double check the URL, or ask for a new link.
         </AlertDescription>
       </Alert>
-    </div>
+    </WordmarkPage>
   )
 }
 
 function ExpiredState() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <WordmarkPage>
       <Alert variant="destructive">
         <AlertTitle>Session expired</AlertTitle>
         <AlertDescription>
           This link is no longer active. Ask for a new one if you still need access.
         </AlertDescription>
       </Alert>
-    </div>
+    </WordmarkPage>
   )
 }
 
 function ErrorState({ detail }: { detail: string }) {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <WordmarkPage>
       <Alert variant="destructive">
         <AlertTitle>Something went wrong</AlertTitle>
         <AlertDescription>{detail}</AlertDescription>
       </Alert>
-    </div>
+    </WordmarkPage>
   )
 }
 
@@ -79,11 +136,14 @@ function LogisticsList({ logistics }: { logistics: Logistics }) {
   if (logistics.length === 0) return null
 
   return (
-    <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+    <dl className="flex flex-col">
       {logistics.map((item) => (
-        <div key={item.label} className="flex flex-col">
-          <dt className="text-muted-foreground text-xs tracking-wide uppercase">{item.label}</dt>
-          <dd className="text-sm">{item.value}</dd>
+        <div
+          key={item.label}
+          className="border-hairline flex flex-col gap-1 border-t py-3.5 first:border-t-0"
+        >
+          <dt className="text-muted-ink text-[13px] leading-[1.4] font-semibold">{item.label}</dt>
+          <dd className="text-ink font-serif text-[17px] leading-[1.4]">{item.value}</dd>
         </div>
       ))}
     </dl>
@@ -98,58 +158,38 @@ const EVIDENCE_TYPE_LABELS: Record<NonNullable<Evidence['type']>, string> = {
   other: 'Other',
 }
 
-function CandidateHeader({ content }: { content: Content }) {
+function SectionItems({ section }: { section: Content['sections'][number] }) {
   return (
-    <header>
-      <h1 className="text-2xl font-semibold tracking-tight">{content.candidate.name}</h1>
-      <p className="text-muted-foreground mt-1">{content.candidate.headline}</p>
-    </header>
-  )
-}
-
-function AnswerSections({ sections }: { sections: Content['sections'] }) {
-  return (
-    <div className="mt-8 flex flex-col gap-6">
-      {sections.map((section) => (
-        <Card key={section.id}>
-          <CardHeader>
-            <CardTitle>{section.title}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            {section.items.map((item) => (
-              <div key={item.id}>
-                <h3 className="font-medium">{item.question}</h3>
-                {item.summary && (
-                  <p className="text-muted-foreground mt-1 text-sm">{item.summary}</p>
-                )}
-                <div className="prose prose-sm mt-2 max-w-none text-sm leading-relaxed">
-                  <ReactMarkdown>{item.answer_md}</ReactMarkdown>
-                </div>
-                {item.evidence.length > 0 && (
-                  <ul className="mt-2 flex flex-wrap gap-2">
-                    {item.evidence.map((ev) => (
-                      <li key={ev.url}>
-                        <a
-                          href={ev.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-primary text-xs underline underline-offset-2"
-                        >
-                          {ev.type && (
-                            <span className="text-muted-foreground">
-                              {EVIDENCE_TYPE_LABELS[ev.type]}:{' '}
-                            </span>
-                          )}
-                          {ev.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+    <div className="flex flex-col gap-6">
+      {section.items.map((item) => (
+        <div key={item.id}>
+          <h3 className="font-medium">{item.question}</h3>
+          {item.summary && <p className="text-muted-foreground mt-1 text-sm">{item.summary}</p>}
+          <div className="prose prose-sm mt-2 max-w-none text-sm leading-relaxed">
+            <ReactMarkdown>{item.answer_md}</ReactMarkdown>
+          </div>
+          {item.evidence.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {item.evidence.map((ev) => (
+                <li key={ev.url}>
+                  <a
+                    href={ev.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary text-xs underline underline-offset-2"
+                  >
+                    {ev.type && (
+                      <span className="text-muted-foreground">
+                        {EVIDENCE_TYPE_LABELS[ev.type]}:{' '}
+                      </span>
+                    )}
+                    {ev.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       ))}
     </div>
   )
@@ -158,7 +198,8 @@ function AnswerSections({ sections }: { sections: Content['sections'] }) {
 interface CompanyQuestionsFormProps {
   token: string
   questions: CompanyQuestion[]
-  onSubmitted: () => void
+  /** Called with the timestamp the API recorded for the submission. */
+  onSubmitted: (submittedAt: string) => void
   onAlreadySubmitted: () => void
 }
 
@@ -199,7 +240,7 @@ function CompanyQuestionsForm({
     setSubmitting(false)
 
     if (result.kind === 'ok') {
-      onSubmitted()
+      onSubmitted(result.data.submitted_at)
       return
     }
     if (result.kind === 'already_submitted') {
@@ -223,38 +264,31 @@ function CompanyQuestionsForm({
   }
 
   return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle>Questions for you</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-          {formError && (
-            <Alert variant="destructive">
-              <AlertDescription>{formError}</AlertDescription>
-            </Alert>
-          )}
-          {questions.map((q) => (
-            <div key={q.id} className="flex flex-col gap-1.5">
-              <label htmlFor={`question-${q.id}`} className="text-sm font-medium">
-                {q.question}
-                {q.required && <span className="text-destructive ml-1">*</span>}
-              </label>
-              <Textarea
-                id={`question-${q.id}`}
-                aria-invalid={Boolean(fieldErrors[q.id])}
-                value={values[q.id] ?? ''}
-                onChange={(e) => handleChange(q.id, e.target.value)}
-              />
-              {fieldErrors[q.id] && <p className="text-destructive text-xs">{fieldErrors[q.id]}</p>}
-            </div>
-          ))}
-          <Button type="submit" disabled={submitting} className="w-fit">
-            {submitting ? 'Submitting...' : 'Submit answers'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <form onSubmit={handleSubmit} className="text-on-dark flex flex-col gap-5" noValidate>
+      {formError && (
+        <Alert variant="destructive">
+          <AlertDescription>{formError}</AlertDescription>
+        </Alert>
+      )}
+      {questions.map((q) => (
+        <div key={q.id} className="flex flex-col gap-1.5">
+          <label htmlFor={`question-${q.id}`} className="text-sm font-medium">
+            {q.question}
+            {q.required && <span className="text-danger-on-dark ml-1">*</span>}
+          </label>
+          <Textarea
+            id={`question-${q.id}`}
+            aria-invalid={Boolean(fieldErrors[q.id])}
+            value={values[q.id] ?? ''}
+            onChange={(e) => handleChange(q.id, e.target.value)}
+          />
+          {fieldErrors[q.id] && <p className="text-danger-on-dark text-xs">{fieldErrors[q.id]}</p>}
+        </div>
+      ))}
+      <Button type="submit" disabled={submitting} className="w-fit">
+        {submitting ? 'Submitting...' : 'Submit answers'}
+      </Button>
+    </form>
   )
 }
 
@@ -289,16 +323,6 @@ export default function SessionPage() {
     }
   }, [token])
 
-  const badgeLabel = useMemo(() => {
-    if (
-      state.status !== 'live' &&
-      state.status !== 'submitted' &&
-      state.status !== 'already_submitted'
-    )
-      return null
-    return state.session.variant
-  }, [state])
-
   if (!token) return <NotFoundState />
   if (state.status === 'loading') return <LoadingSkeleton />
   if (state.status === 'not_found') return <NotFoundState />
@@ -307,48 +331,80 @@ export default function SessionPage() {
 
   const { session, content } = state
 
+  const sent = state.status !== 'live'
+  const requiredCount = content.company_questions.filter((q) => q.required).length
+  const statusChip = sent
+    ? `Sent ${formatDate(session.submitted_at ?? new Date().toISOString(), LONG_MONTHS)}`
+    : `0 of ${requiredCount} required answered`
+  const sessionChip = `${session.company}, until ${formatDate(session.expires_at, SHORT_MONTHS)}`
+
+  const tabs: AppBarTab[] = content.sections.map((section, index) => ({
+    id: section.id,
+    label: index === 0 ? 'Screening' : section.title,
+    count: section.items.length,
+    to: index === 0 ? `/s/${token}` : `/s/${token}/${section.id}`,
+  }))
+
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <div className="flex items-start justify-between gap-4">
-        <CandidateHeader content={content} />
-        {badgeLabel && <Badge variant="secondary">{badgeLabel}</Badge>}
-      </div>
+    <Page
+      appBar={
+        <AppBar
+          name={content.candidate.name}
+          headline={content.candidate.headline}
+          links={content.candidate.links}
+          statusChip={statusChip}
+          sessionChip={sessionChip}
+          tabs={tabs}
+        />
+      }
+    >
+      <Surface title="Logistics" icon={MapPin} count={pluralize(content.logistics.length, 'item')}>
+        <LogisticsList logistics={content.logistics} />
+      </Surface>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Logistics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LogisticsList logistics={content.logistics} />
-        </CardContent>
-      </Card>
-
-      <AnswerSections sections={content.sections} />
+      {content.sections.map((section, index) => (
+        <Surface
+          key={section.id}
+          title={section.title}
+          icon={sectionIcon(index)}
+          count={pluralize(section.items.length, 'answer')}
+        >
+          <SectionItems section={section} />
+        </Surface>
+      ))}
 
       {state.status === 'live' && (
-        <CompanyQuestionsForm
-          token={token}
-          questions={content.company_questions}
-          onSubmitted={() => setState({ status: 'submitted', session, content })}
-          onAlreadySubmitted={() => setState({ status: 'already_submitted', session, content })}
-        />
+        <Surface title="Questions for you" count={statusChip} dark>
+          <CompanyQuestionsForm
+            token={token}
+            questions={content.company_questions}
+            onSubmitted={(submittedAt) =>
+              setState({
+                status: 'submitted',
+                session: { ...session, answers_submitted: true, submitted_at: submittedAt },
+                content,
+              })
+            }
+            onAlreadySubmitted={() => setState({ status: 'already_submitted', session, content })}
+          />
+        </Surface>
       )}
 
       {state.status === 'submitted' && (
-        <Alert className="mt-6">
+        <Alert>
           <AlertTitle>Thanks, your answers are in</AlertTitle>
           <AlertDescription>The candidate will follow up from here.</AlertDescription>
         </Alert>
       )}
 
       {state.status === 'already_submitted' && (
-        <Alert className="mt-6">
+        <Alert>
           <AlertTitle>Answers already submitted</AlertTitle>
           <AlertDescription>
             This session already has answers on file for these questions.
           </AlertDescription>
         </Alert>
       )}
-    </main>
+    </Page>
   )
 }

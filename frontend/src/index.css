@@ -2,49 +2,51 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Design tokens from docs/design/design-system.md, as oklch. Light theme only; the dark
+   app bar and the dark questions surface are components and keep their values everywhere. */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-}
+  --radius: 0.75rem;
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ground: oklch(0.923 0.009 134.9);
+  --surface: oklch(1 0 0);
+  --surface-border: oklch(0.901 0.012 128.6);
+  --ink: oklch(0.197 0.007 78.2);
+  --muted-ink: oklch(0.525 0.013 84.6);
+  --hairline: oklch(0.916 0.01 87.5);
+  --accent: oklch(0.52 0.102 154.7);
+  --accent-hover: oklch(0.458 0.091 154.6);
+  --accent-tint: oklch(0.948 0.015 158.2);
+  --dark: oklch(0.235 0.019 184.1);
+  --on-dark: oklch(0.955 0.008 91.5);
+  --on-dark-muted: oklch(0.757 0.013 164.7);
+  --dark-input: oklch(0.27 0.021 180.8);
+  --dark-border: oklch(0.394 0.022 174.1);
+  --danger: oklch(0.523 0.156 24.3);
+  --danger-on-dark: oklch(0.778 0.085 26.4);
+  --skeleton: oklch(0.921 0.009 128.6);
+  --skeleton-on-dark: oklch(0.33 0.02 181.4);
+
+  /* shadcn variables mapped onto the tokens above. */
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--accent);
+  --primary-foreground: var(--on-dark);
+  --secondary: var(--accent-tint);
+  --secondary-foreground: var(--accent);
+  --muted: var(--accent-tint);
+  --muted-foreground: var(--muted-ink);
+  --accent-foreground: var(--accent);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--on-dark);
+  --border: var(--surface-border);
+  --input: var(--surface-border);
+  --ring: var(--accent);
 }
 
 @theme inline {
@@ -71,6 +73,25 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-border: var(--surface-border);
+  --color-ink: var(--ink);
+  --color-muted-ink: var(--muted-ink);
+  --color-hairline: var(--hairline);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-tint: var(--accent-tint);
+  --color-dark: var(--dark);
+  --color-on-dark: var(--on-dark);
+  --color-on-dark-muted: var(--on-dark-muted);
+  --color-dark-input: var(--dark-input);
+  --color-dark-border: var(--dark-border);
+  --color-danger: var(--danger);
+  --color-danger-on-dark: var(--danger-on-dark);
+  --color-skeleton: var(--skeleton);
+  --color-skeleton-on-dark: var(--skeleton-on-dark);
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
 }
 
 @layer base {
@@ -78,6 +99,6 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
 }
