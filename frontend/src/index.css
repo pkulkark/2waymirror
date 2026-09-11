@@ -98,6 +98,21 @@
   --font-sans: var(--font-sans);
 }
 
+/* Tab change: the content fades in over 150ms ease-out, per design-system.md ("Motion").
+   SessionPage drops the utility under prefers-reduced-motion. */
+@theme {
+  --animate-tab-in: tab-in 150ms ease-out;
+
+  @keyframes tab-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
