@@ -45,6 +45,18 @@ Section files are read in filename order, so `content/sample/sections/` numbers 
       value: EUR 85,000 to 100,000 base, open to discussing total comp
 ```
 
+## Evidence footnotes
+
+An answer body may cite its own evidence with a standard Markdown footnote reference, `[^1]`,
+`[^2]`, and so on. The number is the position of the item in that answer's `evidence` list, so
+`[^1]` points at the first entry. No footnote definitions are needed anywhere in the file: the
+frontend turns each marker into a superscript link to the matching evidence row. A marker whose
+number has no evidence item is left as written.
+
+```markdown
+I led the migration from a single instance to a sharded setup[^1], with no downtime.
+```
+
 ## Variant merge rule
 
 Two different `variants:` shapes appear in this tree:

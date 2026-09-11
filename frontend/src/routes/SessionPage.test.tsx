@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { afterEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import SessionPage from '@/routes/SessionPage'
 import type { SessionContentResponse } from '@/api'
@@ -82,9 +82,10 @@ function LocationProbe() {
   return <span data-testid="pathname">{pathname}</span>
 }
 
-function renderAt(token: string, section?: string) {
+function renderAt(token: string, section?: string, hash = '') {
+  const path = section ? `/s/${token}/${section}` : `/s/${token}`
   return render(
-    <MemoryRouter initialEntries={[section ? `/s/${token}/${section}` : `/s/${token}`]}>
+    <MemoryRouter initialEntries={[`${path}${hash}`]}>
       <Routes>
         <Route path="/s/:token/:section?" element={<SessionPage />} />
       </Routes>
@@ -92,6 +93,14 @@ function renderAt(token: string, section?: string) {
     </MemoryRouter>,
   )
 }
+
+// jsdom has no scrollIntoView at all, so the page's fragment jump needs one to call.
+const scrollIntoView = vi.fn()
+Element.prototype.scrollIntoView = scrollIntoView
+
+beforeEach(() => {
+  scrollIntoView.mockClear()
+})
 
 /** The typed answers live on the page, so the app bar chip and the form share this label. */
 function questionField() {
@@ -126,13 +135,36 @@ describe('SessionPage', () => {
     expect(screen.getByText('Looking for more ownership.')).toBeInTheDocument()
     expect(screen.getByText('Availability')).toBeInTheDocument()
     expect(screen.getByText('Two weeks notice')).toBeInTheDocument()
-    const typedLink = screen.getByRole('link', { name: /Conference talk/ })
+    const typedLink = screen.getByRole('link', { name: 'Conference talk' })
     expect(typedLink).toHaveAttribute('href', 'https://example.com/talk')
-    expect(typedLink).toHaveTextContent('Talk: Conference talk')
+    // The type word sits beside the link now, not as a prefix inside it.
+    expect(typedLink.textContent).toBe('Conference talk')
+    expect(container.querySelector('#evidence-why-leaving-1')).toHaveTextContent('talk')
     const untypedLink = screen.getByRole('link', { name: 'Untyped link' })
     expect(untypedLink).toHaveAttribute('href', 'https://example.com/untyped')
     expect(untypedLink).toHaveTextContent('Untyped link')
-    expect(untypedLink.textContent).not.toContain(':')
+  })
+
+  test('jumps to the evidence row a fragment names, once the content is in', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    const { container } = renderAt('tok123', undefined, '#evidence-why-leaving-1')
+
+    // Nothing to scroll to while the skeleton is up: the row only exists after the load.
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledTimes(1)
+    })
+    expect(scrollIntoView.mock.contexts[0]).toBe(container.querySelector('#evidence-why-leaving-1'))
+  })
+
+  test('scrolls nowhere when the fragment names no element on the page', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
+    renderAt('tok123', undefined, '#evidence-not-here-1')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+    expect(scrollIntoView).not.toHaveBeenCalled()
   })
 
   test('shows a not-found state on 404', async () => {

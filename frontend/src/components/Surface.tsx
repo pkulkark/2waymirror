@@ -1,7 +1,8 @@
-import { useId, useState, type ReactNode } from 'react'
-import { ChevronUp, type LucideIcon } from 'lucide-react'
+import { type ReactNode } from 'react'
+import { type LucideIcon } from 'lucide-react'
 
-import { useReducedMotion } from '@/lib/motion'
+import { CollapseBody, CollapseChevron } from '@/components/Collapse'
+import { useCollapse } from '@/lib/collapse'
 import { cn } from '@/lib/utils'
 
 export interface SurfaceProps {
@@ -32,10 +33,10 @@ export default function Surface({
   id,
   children,
 }: SurfaceProps) {
-  const [open, setOpen] = useState(defaultOpen)
-  const reducedMotion = useReducedMotion()
-  const bodyId = useId()
-  const isOpen = collapsible ? open : true
+  const { isOpen, reducedMotion, triggerProps, bodyProps } = useCollapse({
+    defaultOpen,
+    collapsible,
+  })
 
   const headerRow = cn('flex h-[52px] items-center', dark ? 'bg-dark-input' : 'bg-moss-tint')
   const headerInner = 'flex w-full items-center justify-between gap-6 px-9'
@@ -66,17 +67,7 @@ export default function Surface({
         )}
       >
         {count && <span>{count}</span>}
-        {collapsible && (
-          <ChevronUp
-            aria-hidden="true"
-            strokeWidth={1.4}
-            className={cn(
-              'size-4 shrink-0',
-              !reducedMotion && 'transition-transform duration-200 ease-out',
-              !isOpen && 'rotate-180',
-            )}
-          />
-        )}
+        {collapsible && <CollapseChevron open={isOpen} reducedMotion={reducedMotion} />}
       </span>
     </>
   )
@@ -94,10 +85,7 @@ export default function Surface({
         // The disclosure pattern: the heading holds the row, the button inside it fills the row.
         <h2 className={headerRow}>
           <button
-            type="button"
-            aria-expanded={isOpen}
-            aria-controls={bodyId}
-            onClick={() => setOpen((previous) => !previous)}
+            {...triggerProps}
             className={cn(
               headerInner,
               'focus-visible:outline-moss h-full cursor-pointer text-left focus-visible:outline-2 focus-visible:-outline-offset-2',
@@ -110,20 +98,9 @@ export default function Surface({
         <h2 className={cn(headerRow, headerInner)}>{headerContent}</h2>
       )}
 
-      <div
-        id={bodyId}
-        data-state={isOpen ? 'open' : 'closed'}
-        inert={!isOpen}
-        className={cn(
-          'grid',
-          !reducedMotion && 'transition-[grid-template-rows] duration-200 ease-out',
-          isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
-        )}
-      >
-        <div className="overflow-hidden">
-          <div className="px-9 pt-7 pb-9">{children}</div>
-        </div>
-      </div>
+      <CollapseBody {...bodyProps} className="px-9 pt-7 pb-9">
+        {children}
+      </CollapseBody>
     </section>
   )
 }

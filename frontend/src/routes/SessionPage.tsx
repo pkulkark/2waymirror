@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Code, FileText, MapPin, MessagesSquare, User, type LucideIcon } from 'lucide-react'
 
 import {
@@ -8,10 +7,10 @@ import {
   submitAnswers,
   type CompanyQuestion,
   type Content,
-  type Evidence,
   type Logistics,
   type Session,
 } from '@/api'
+import Answer from '@/components/Answer'
 import AppBar, { type AppBarTab } from '@/components/AppBar'
 import Page from '@/components/Page'
 import Surface from '@/components/Surface'
@@ -152,45 +151,15 @@ function LogisticsList({ logistics }: { logistics: Logistics }) {
   )
 }
 
-const EVIDENCE_TYPE_LABELS: Record<NonNullable<Evidence['type']>, string> = {
-  repo: 'Repo',
-  pr: 'PR',
-  talk: 'Talk',
-  writeup: 'Writeup',
-  other: 'Other',
-}
-
 function SectionItems({ section }: { section: Content['sections'][number] }) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col">
       {section.items.map((item) => (
-        <div key={item.id}>
-          <h3 className="font-medium">{item.question}</h3>
-          {item.summary && <p className="text-muted-foreground mt-1 text-sm">{item.summary}</p>}
-          <div className="prose prose-sm mt-2 max-w-none text-sm leading-relaxed">
-            <ReactMarkdown>{item.answer_md}</ReactMarkdown>
-          </div>
-          {item.evidence.length > 0 && (
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {item.evidence.map((ev) => (
-                <li key={ev.url}>
-                  <a
-                    href={ev.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary text-xs underline underline-offset-2"
-                  >
-                    {ev.type && (
-                      <span className="text-muted-foreground">
-                        {EVIDENCE_TYPE_LABELS[ev.type]}:{' '}
-                      </span>
-                    )}
-                    {ev.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div
+          key={item.id}
+          className="border-hairline border-t py-7 first:border-t-0 first:pt-0 last:pb-0"
+        >
+          <Answer item={item} />
         </div>
       ))}
     </div>
@@ -338,6 +307,7 @@ function useAnswerSubmission({
 
 export default function SessionPage() {
   const { token, section: sectionParam } = useParams<{ token: string; section?: string }>()
+  const { hash } = useLocation()
   const navigate = useNavigate()
   const reducedMotion = useReducedMotion()
   const [state, setState] = useState<PageState>({ status: 'loading' })
@@ -414,6 +384,16 @@ export default function SessionPage() {
     }
     previousSectionId.current = activeSectionId
   }, [activeSectionId])
+
+  // A shared link to an evidence row lands on a page that is still loading, so the browser has
+  // nothing to scroll to and gives up. Jump once the content is in. `loaded` only ever flips
+  // false to true, so submitting the form later does not send the reader back up the page.
+  const loaded = state.status !== 'loading'
+
+  useEffect(() => {
+    if (!loaded || !hash) return
+    document.getElementById(hash.slice(1))?.scrollIntoView()
+  }, [hash, loaded])
 
   if (!token) return <NotFoundState />
   if (state.status === 'loading') return <LoadingSkeleton />
