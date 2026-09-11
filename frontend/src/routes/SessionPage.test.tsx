@@ -124,10 +124,11 @@ describe('SessionPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(pending))
 
     const { container } = renderAt('tok123')
-    const skeleton = container.querySelector('[data-slot="skeleton"]')
+    const skeleton = container.querySelector('main [data-slot="skeleton"]')
     expect(skeleton).not.toBeNull()
     // Neutral placeholder colour, not the accent green.
     expect(skeleton).toHaveClass('bg-skeleton')
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull()
 
     resolveFetch(jsonResponse(200, sample))
 
@@ -175,16 +176,111 @@ describe('SessionPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(404, { detail: 'nope' })))
     renderAt('missing')
     await waitFor(() => {
-      expect(screen.getByText('Session not found')).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'This link does not match a session' }),
+      ).toBeInTheDocument()
     })
+    expect(
+      screen.getByText(
+        'Check the address you were sent, or ask the person who sent it for a new link.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Email/ })).not.toBeInTheDocument()
   })
 
-  test('shows an expired state on 410', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(410, { detail: 'gone' })))
+  test('shows the expired state with the date and the candidate on 410', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(410, {
+          detail: 'gone',
+          candidate: { name: 'Jordan Sample', email: 'jordan@example.com' },
+          expires_at: '2026-09-15T00:00:00Z',
+        }),
+      ),
+    )
     renderAt('expiredtok')
     await waitFor(() => {
-      expect(screen.getByText('Session expired')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'This link has expired' })).toBeInTheDocument()
     })
+
+    // The bar names the candidate rather than showing the wordmark.
+    expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    expect(screen.queryByText('2WayMirror')).not.toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'It was made for one conversation and stopped working on 15 September. If you still need it, email Jordan Sample and a new link will follow.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Email Jordan Sample' })).toHaveAttribute(
+      'href',
+      'mailto:jordan@example.com',
+    )
+  })
+
+  test('points the reader back at their message when the expired link carries no email', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(410, {
+          detail: 'gone',
+          candidate: { name: 'Jordan Sample', email: null },
+          expires_at: '2026-09-15T00:00:00Z',
+        }),
+      ),
+    )
+    renderAt('expiredtok')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'This link has expired' })).toBeInTheDocument()
+    })
+
+    expect(
+      screen.getByText(
+        'It was made for one conversation and stopped working on 15 September. Reply to the message that brought you here to ask for a new one.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Email/ })).not.toBeInTheDocument()
+  })
+
+  test('drops the date clause when the expired link carries no expiry', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse(410, { detail: 'gone', candidate: {} })),
+    )
+    renderAt('expiredtok')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'This link has expired' })).toBeInTheDocument()
+    })
+
+    expect(
+      screen.getByText(
+        'It was made for one conversation and stopped working. Reply to the message that brought you here to ask for a new one.',
+      ),
+    ).toBeInTheDocument()
+    // No name in the body, so the bar falls back to the wordmark.
+    expect(screen.getByRole('heading', { name: '2WayMirror' })).toBeInTheDocument()
+  })
+
+  test('addresses the reader by email when the expired link carries no name', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(410, {
+          detail: 'gone',
+          candidate: { email: 'jordan@example.com' },
+          expires_at: '2026-09-15T00:00:00Z',
+        }),
+      ),
+    )
+    renderAt('expiredtok')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'This link has expired' })).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('link', { name: 'Email jordan@example.com' })).toHaveAttribute(
+      'href',
+      'mailto:jordan@example.com',
+    )
   })
 
   test('shows an already-submitted state when the session says so', async () => {
@@ -315,8 +411,41 @@ describe('SessionPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
     renderAt('tok123')
     await waitFor(() => {
-      expect(screen.getByText('Something went wrong')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument()
     })
+    expect(
+      screen.getByText('Could not reach the server. Check your connection.'),
+    ).toBeInTheDocument()
+  })
+
+  test('try again refetches and shows the session when the second attempt works', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValue(jsonResponse(200, sample))
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  test('shows the error detail the server sent on a 5xx', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(500, { detail: 'boom' })))
+    renderAt('tok123')
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument()
+    })
+    expect(screen.getByText('boom')).toBeInTheDocument()
   })
   test('shows the session and status chips in the app bar', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, sample)))
@@ -616,11 +745,15 @@ describe('SessionPage', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(404, { detail: 'nope' })))
     renderAt('missing')
     await waitFor(() => {
-      expect(screen.getByText('Session not found')).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'This link does not match a session' }),
+      ).toBeInTheDocument()
     })
 
     expect(screen.getByRole('heading', { name: '2WayMirror' })).toBeInTheDocument()
     expect(screen.getByText('Built by the candidate.')).toBeInTheDocument()
+    // No chips and no tabs behind a dead end.
+    expect(screen.queryByRole('navigation', { name: 'Sections' })).not.toBeInTheDocument()
   })
   test('a submit in flight survives leaving and returning to the screening tab', async () => {
     let resolvePost: (value: Response) => void = () => {}

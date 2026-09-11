@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   CheckCircle2,
@@ -16,17 +16,19 @@ import {
   submitAnswers,
   type CompanyQuestion,
   type Content,
+  type ExpiredCandidate,
   type Logistics,
   type Session,
 } from '@/api'
 import Answer from '@/components/Answer'
 import AppBar, { type AppBarTab } from '@/components/AppBar'
+import DeadEnd from '@/components/DeadEnd'
+import LoadingSkeleton from '@/components/LoadingSkeleton'
 import Page from '@/components/Page'
 import Surface from '@/components/Surface'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { FOCUS_RING } from '@/lib/styles'
 import { useReducedMotion } from '@/lib/motion'
 import {
   clearAnswerDraft,
@@ -39,7 +41,7 @@ import { cn } from '@/lib/utils'
 type PageState =
   | { status: 'loading' }
   | { status: 'not_found' }
-  | { status: 'expired' }
+  | { status: 'expired'; candidate: ExpiredCandidate; expiresAt: string | null }
   | { status: 'error'; detail: string }
   | { status: 'live'; session: Session; content: Content }
 
@@ -94,55 +96,82 @@ function sectionIcon(index: number): LucideIcon {
   return SECTION_ICONS[index] ?? FileText
 }
 
-function WordmarkPage({ children }: { children: ReactNode }) {
-  return <Page appBar={<AppBar />}>{children}</Page>
-}
-
-function LoadingSkeleton() {
-  return (
-    <WordmarkPage>
-      <Skeleton className="h-8 w-2/3" />
-      <Skeleton className="h-4 w-1/2" />
-      <Skeleton className="h-32 w-full" />
-      <Skeleton className="h-32 w-full" />
-    </WordmarkPage>
-  )
-}
+/** A 44px control on light, per design-system.md ("Controls"): the two dead-end actions. */
+const ACTION_BUTTON = cn(
+  'inline-flex h-11 cursor-pointer items-center justify-center rounded-[8px] px-5 text-[15px] leading-none font-semibold',
+  FOCUS_RING,
+)
 
 function NotFoundState() {
   return (
-    <WordmarkPage>
-      <Alert variant="destructive">
-        <AlertTitle>Session not found</AlertTitle>
-        <AlertDescription>
-          This link doesn&apos;t match any session. Double check the URL, or ask for a new link.
-        </AlertDescription>
-      </Alert>
-    </WordmarkPage>
+    <DeadEnd title="This link does not match a session">
+      Check the address you were sent, or ask the person who sent it for a new link.
+    </DeadEnd>
   )
 }
 
-function ExpiredState() {
+/**
+ * Expired and revoked share this page: the backend answers both with 410 and the reader has
+ * the same problem either way. The 410 body carries the candidate's contact, so the page can
+ * name who to ask; without an email it points back at the message the link arrived in, and
+ * without a date it drops the date clause rather than guessing one.
+ */
+function ExpiredState({
+  candidate,
+  expiresAt,
+}: {
+  candidate: ExpiredCandidate
+  expiresAt: string | null
+}) {
+  const name = candidate.name?.trim() || null
+  const email = candidate.email?.trim() || null
+  // The name is what the reader knows the candidate by; the address stands in without one.
+  const contact = name ?? email
+
   return (
-    <WordmarkPage>
-      <Alert variant="destructive">
-        <AlertTitle>Session expired</AlertTitle>
-        <AlertDescription>
-          This link is no longer active. Ask for a new one if you still need access.
-        </AlertDescription>
-      </Alert>
-    </WordmarkPage>
+    <DeadEnd
+      name={name ?? undefined}
+      title="This link has expired"
+      action={
+        email ? (
+          <a
+            href={`mailto:${email}`}
+            className={cn(ACTION_BUTTON, 'bg-moss hover:bg-moss-hover text-on-dark no-underline')}
+          >
+            Email {contact}
+          </a>
+        ) : undefined
+      }
+    >
+      {expiresAt
+        ? `It was made for one conversation and stopped working on ${formatDate(expiresAt, LONG_MONTHS)}.`
+        : 'It was made for one conversation and stopped working.'}{' '}
+      {email
+        ? `If you still need it, email ${contact} and a new link will follow.`
+        : 'Reply to the message that brought you here to ask for a new one.'}
+    </DeadEnd>
   )
 }
 
-function ErrorState({ detail }: { detail: string }) {
+function ErrorState({ detail, onRetry }: { detail: string; onRetry: () => void }) {
   return (
-    <WordmarkPage>
-      <Alert variant="destructive">
-        <AlertTitle>Something went wrong</AlertTitle>
-        <AlertDescription>{detail}</AlertDescription>
-      </Alert>
-    </WordmarkPage>
+    <DeadEnd
+      title="Something went wrong"
+      action={
+        <button
+          type="button"
+          onClick={onRetry}
+          className={cn(
+            ACTION_BUTTON,
+            'border-surface-border text-ink hover:bg-moss-tint border bg-transparent',
+          )}
+        >
+          Try again
+        </button>
+      }
+    >
+      {detail}
+    </DeadEnd>
   )
 }
 
@@ -378,6 +407,8 @@ function SessionPageForToken({ token }: { token: string | undefined }) {
   const navigate = useNavigate()
   const reducedMotion = useReducedMotion()
   const [state, setState] = useState<PageState>({ status: 'loading' })
+  // Bumped by "Try again" on the error state, which is the only way to fetch a second time.
+  const [attempt, setAttempt] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [editing, setEditing] = useState(false)
   const submission = useAnswerSubmission({
@@ -422,7 +453,11 @@ function SessionPageForToken({ token }: { token: string | undefined }) {
       } else if (result.kind === 'not_found') {
         setState({ status: 'not_found' })
       } else if (result.kind === 'expired') {
-        setState({ status: 'expired' })
+        setState({
+          status: 'expired',
+          candidate: result.candidate,
+          expiresAt: result.expires_at,
+        })
       } else {
         setState({ status: 'error', detail: result.detail })
       }
@@ -431,7 +466,7 @@ function SessionPageForToken({ token }: { token: string | undefined }) {
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [token, attempt])
 
   // Tab routing. `/s/:token` is the screening tab, which carries the first section; every other
   // section is `/s/:token/:section`. Sections are only known once the content is in, so the
@@ -470,8 +505,10 @@ function SessionPageForToken({ token }: { token: string | undefined }) {
   if (!token) return <NotFoundState />
   if (state.status === 'loading') return <LoadingSkeleton />
   if (state.status === 'not_found') return <NotFoundState />
-  if (state.status === 'expired') return <ExpiredState />
-  if (state.status === 'error') return <ErrorState detail={state.detail} />
+  if (state.status === 'expired')
+    return <ExpiredState candidate={state.candidate} expiresAt={state.expiresAt} />
+  if (state.status === 'error')
+    return <ErrorState detail={state.detail} onRetry={() => setAttempt((n) => n + 1)} />
 
   const { session, content } = state
 

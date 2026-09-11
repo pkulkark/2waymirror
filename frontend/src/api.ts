@@ -86,10 +86,20 @@ export interface SubmitAnswersResponse {
   submitted_at: string
 }
 
+/**
+ * The candidate's contact as the 410 body carries it (docs/architecture.md, "API"). Either
+ * field is null when the body omits it or holds something that is not a string, so the expired
+ * page can fall back to copy that names nobody.
+ */
+export interface ExpiredCandidate {
+  name: string | null
+  email: string | null
+}
+
 export type SessionFetchResult =
   | { kind: 'ok'; data: SessionContentResponse }
   | { kind: 'not_found' }
-  | { kind: 'expired' }
+  | { kind: 'expired'; candidate: ExpiredCandidate; expires_at: string | null }
   | { kind: 'error'; detail: string }
 
 export type SubmitAnswersResult =
@@ -116,6 +126,42 @@ async function readDetail(response: Response): Promise<string> {
   return `Request failed with status ${response.status}.`
 }
 
+function readRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
+
+/**
+ * The 410 body: `{"detail", "candidate": {"name", "email"}, "expires_at"}`. Read field by
+ * field rather than cast, because an expired link is exactly the case where the page has no
+ * other copy of the session to fall back on: anything missing or of the wrong type becomes
+ * null and the page drops that part of the message. `expires_at` also has to parse as a date,
+ * since the page prints it.
+ */
+async function readExpired(response: Response): Promise<SessionFetchResult> {
+  let body: unknown = null
+  try {
+    body = await response.json()
+  } catch {
+    // An unreadable body leaves every field null.
+  }
+
+  const record = readRecord(body)
+  const candidate = readRecord(record.candidate)
+  const expiresAt = readString(record.expires_at)
+
+  return {
+    kind: 'expired',
+    candidate: { name: readString(candidate.name), email: readString(candidate.email) },
+    expires_at: expiresAt !== null && Number.isFinite(Date.parse(expiresAt)) ? expiresAt : null,
+  }
+}
+
 export async function fetchSession(token: string): Promise<SessionFetchResult> {
   let response: Response
   try {
@@ -125,7 +171,7 @@ export async function fetchSession(token: string): Promise<SessionFetchResult> {
   }
 
   if (response.status === 404) return { kind: 'not_found' }
-  if (response.status === 410) return { kind: 'expired' }
+  if (response.status === 410) return await readExpired(response)
   if (!response.ok) return { kind: 'error', detail: await readDetail(response) }
 
   const data = (await response.json()) as SessionContentResponse

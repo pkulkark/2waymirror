@@ -44,10 +44,88 @@ describe('fetchSession', () => {
     expect(result).toEqual({ kind: 'not_found' })
   })
 
-  test('returns expired on 410', async () => {
+  test('returns expired with the contact the 410 body carries', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(410, {
+          detail: 'gone',
+          candidate: { name: 'Jordan Sample', email: 'jordan@example.com' },
+          expires_at: '2026-09-15T00:00:00Z',
+        }),
+      ),
+    )
+    const result = await fetchSession('tok')
+    expect(result).toEqual({
+      kind: 'expired',
+      candidate: { name: 'Jordan Sample', email: 'jordan@example.com' },
+      expires_at: '2026-09-15T00:00:00Z',
+    })
+  })
+
+  test('returns expired with nulls when the 410 body omits the contact', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(410, { detail: 'gone' })))
     const result = await fetchSession('tok')
-    expect(result).toEqual({ kind: 'expired' })
+    expect(result).toEqual({
+      kind: 'expired',
+      candidate: { name: null, email: null },
+      expires_at: null,
+    })
+  })
+
+  test('returns expired with nulls when the 410 body is malformed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(410, {
+          candidate: ['Jordan Sample'],
+          expires_at: 42,
+        }),
+      ),
+    )
+    const result = await fetchSession('tok')
+    expect(result).toEqual({
+      kind: 'expired',
+      candidate: { name: null, email: null },
+      expires_at: null,
+    })
+  })
+
+  test('drops an expiry that is not a date', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(410, {
+          candidate: { name: 'Jordan Sample', email: null },
+          expires_at: 'one day soon',
+        }),
+      ),
+    )
+    const result = await fetchSession('tok')
+    expect(result).toEqual({
+      kind: 'expired',
+      candidate: { name: 'Jordan Sample', email: null },
+      expires_at: null,
+    })
+  })
+
+  test('returns expired with nulls when the 410 body is not json', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        status: 410,
+        ok: false,
+        json: async () => {
+          throw new Error('not json')
+        },
+      } as unknown as Response),
+    )
+    const result = await fetchSession('tok')
+    expect(result).toEqual({
+      kind: 'expired',
+      candidate: { name: null, email: null },
+      expires_at: null,
+    })
   })
 
   test('returns error on other non-ok status with detail', async () => {
