@@ -17,10 +17,11 @@ describe('DeadEnd', () => {
       </DeadEnd>,
     )
 
-    expect(screen.getByRole('heading', { name: 'This link does not match a session' })).toHaveClass(
-      'font-serif',
-      'text-[28px]',
-    )
+    const title = screen.getByRole('heading', {
+      level: 2,
+      name: 'This link does not match a session',
+    })
+    expect(title).toHaveClass('font-serif', 'text-[28px]')
     expect(screen.getByText('Check the address you were sent.')).toHaveClass(
       'font-serif',
       'text-[17px]',
@@ -57,5 +58,26 @@ describe('DeadEnd', () => {
 
     expect(container.querySelector('main > div > div')).toBeNull()
     expect(screen.queryByRole('link', { name: /Email/ })).not.toBeInTheDocument()
+  })
+
+  test('renders an action that is falsy but still content', () => {
+    // `0` is a legal ReactNode, so the row is decided by "was an action given", not by truth.
+    const { container } = renderDeadEnd(
+      <DeadEnd title="No way out" action={0}>
+        Nothing to do here.
+      </DeadEnd>,
+    )
+
+    const row = container.querySelector('main > div > div')
+    expect(row).toHaveClass('mt-6')
+    expect(row).toHaveTextContent('0')
+  })
+
+  test('takes focus on the title so the page is announced and the keyboard has somewhere to be', () => {
+    renderDeadEnd(<DeadEnd title="This link has expired">It stopped working.</DeadEnd>)
+
+    const title = screen.getByRole('heading', { level: 2, name: 'This link has expired' })
+    expect(title).toHaveAttribute('tabindex', '-1')
+    expect(title).toHaveFocus()
   })
 })

@@ -17,6 +17,7 @@ import {
   type CompanyQuestion,
   type Content,
   type ExpiredCandidate,
+  type ExpiredResult,
   type Logistics,
   type Session,
 } from '@/api'
@@ -111,6 +112,19 @@ function NotFoundState() {
 }
 
 /**
+ * The first sentence of the expired message. A revoked session is answered with the same 410
+ * as a lapsed one but keeps the expiry it was scheduled for, which is usually still in the
+ * future: naming it would tell a reader whose link died today that it dies next week. So the
+ * date is printed only once it has passed, and a link that is gone early says so plainly.
+ */
+function expiredLede(expiresAt: string | null): string {
+  if (expiresAt === null) return 'It was made for one conversation and stopped working.'
+  if (Date.parse(expiresAt) > Date.now())
+    return 'It was made for one conversation and is no longer active.'
+  return `It was made for one conversation and stopped working on ${formatDate(expiresAt, LONG_MONTHS)}.`
+}
+
+/**
  * Expired and revoked share this page: the backend answers both with 410 and the reader has
  * the same problem either way. The 410 body carries the candidate's contact, so the page can
  * name who to ask; without an email it points back at the message the link arrived in, and
@@ -143,9 +157,7 @@ function ExpiredState({
         ) : undefined
       }
     >
-      {expiresAt
-        ? `It was made for one conversation and stopped working on ${formatDate(expiresAt, LONG_MONTHS)}.`
-        : 'It was made for one conversation and stopped working.'}{' '}
+      {expiredLede(expiresAt)}{' '}
       {email
         ? `If you still need it, email ${contact} and a new link will follow.`
         : 'Reply to the message that brought you here to ask for a new one.'}
@@ -312,6 +324,8 @@ interface UseAnswerSubmissionArgs {
     answers: Record<string, string>,
     questions: CompanyQuestion[],
   ) => void
+  /** The link died while the form was open: the page swaps itself for the expired state. */
+  onExpired: (result: ExpiredResult) => void
 }
 
 /**
@@ -324,6 +338,7 @@ function useAnswerSubmission({
   questions,
   values,
   onSubmitted,
+  onExpired,
 }: UseAnswerSubmissionArgs): AnswerSubmission {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -376,7 +391,13 @@ function useAnswerSubmission({
       }
       return
     }
-    if (result.kind === 'not_found' || result.kind === 'expired') {
+    // An expired link cannot be answered by any retry, so the page says so on its own terms
+    // rather than leaving the form up behind an error the reader can do nothing about.
+    if (result.kind === 'expired') {
+      onExpired(result)
+      return
+    }
+    if (result.kind === 'not_found') {
       setFormError('This session is no longer available. Refresh the page for the latest state.')
       return
     }
@@ -433,6 +454,10 @@ function SessionPageForToken({ token }: { token: string | undefined }) {
           : previous,
       )
     },
+    // The draft is left where it is: the answers are the reader's, and nothing else can be
+    // done with them once the link is gone.
+    onExpired: (result) =>
+      setState({ status: 'expired', candidate: result.candidate, expiresAt: result.expires_at }),
   })
 
   useEffect(() => {

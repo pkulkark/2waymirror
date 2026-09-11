@@ -30,11 +30,12 @@ describe('LoadingSkeleton', () => {
     expect(barBlocks[0]).toHaveClass('h-5', 'w-[140px]')
     expect(barBlocks[1]).toHaveClass('h-7', 'w-[160px]', 'rounded-full')
     expect(barBlocks[2]).toHaveClass('h-7', 'w-[160px]', 'rounded-full')
-    expect(barBlocks[3]).toHaveClass('h-[15px]', 'w-[360px]')
+    // The headline and link blocks reserve the height of the text they stand in for.
+    expect(barBlocks[3]).toHaveClass('h-[21px]', 'w-[360px]')
     expect(barBlocks.slice(4, 7).map((b) => b.className)).toEqual(
       Array(3).fill(barBlocks[4].className),
     )
-    expect(barBlocks[4]).toHaveClass('h-[15px]', 'w-[70px]')
+    expect(barBlocks[4]).toHaveClass('h-[21px]', 'w-[70px]')
     // The tabs take the widths of the labels they stand in for.
     expect(barBlocks.slice(7, 10).map((b) => b.className.match(/w-\[(\d+)px\]/)?.[1])).toEqual([
       '90',
@@ -42,6 +43,8 @@ describe('LoadingSkeleton', () => {
       '120',
     ])
     barBlocks.slice(7, 10).forEach((tab) => expect(tab).toHaveClass('h-[15px]'))
+    // The headline and links sit in the same column the real bar gives them.
+    expect(barBlocks[3].parentElement).toHaveClass('gap-2.5', 'pb-4')
     // The tabs row keeps the bar's 44px height.
     expect(barBlocks[7].parentElement).toHaveClass('h-11')
   })
@@ -59,8 +62,10 @@ describe('LoadingSkeleton', () => {
 
     const rows = surfaces[0].querySelectorAll('.border-hairline')
     expect(rows).toHaveLength(4)
-    expect(rows[0].children[0]).toHaveClass('h-3', 'w-[90px]')
-    expect(rows[0].children[1]).toHaveClass('h-4', 'w-[320px]')
+    // A 13px label at 1.4 and a 17px value at 1.4: the heights of the real logistics row.
+    expect(rows[0]).toHaveClass('gap-1', 'py-3.5')
+    expect(rows[0].children[0]).toHaveClass('h-[18px]', 'w-[90px]')
+    expect(rows[0].children[1]).toHaveClass('h-6', 'w-[320px]')
 
     const lines = blocks(surfaces[1] as HTMLElement).slice(1)
     expect(lines.map((line) => line.className.match(/w-\[(\d+)px\]/)?.[1])).toEqual([
@@ -79,6 +84,7 @@ describe('LoadingSkeleton', () => {
 
     expect(container.querySelector('[aria-busy="true"]')).not.toBeNull()
     expect(screen.getByText('Loading')).toHaveClass('sr-only')
+    expect(screen.getByText('Loading')).toHaveAttribute('aria-live', 'polite')
     expect(container.querySelector('header')).toHaveAttribute('aria-hidden', 'true')
   })
 

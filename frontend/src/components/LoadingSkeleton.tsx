@@ -33,12 +33,13 @@ function LoadingAppBar() {
           </div>
         </div>
 
-        {/* Rows 2 and 3: the headline and the profile links. */}
+        {/* Rows 2 and 3: the headline and the profile links. Neither row has a set height in
+            AppBar, so the blocks stand as tall as the text they replace: 15px at 1.4 is 21px. */}
         <div className="flex flex-col items-start gap-2.5 pb-4">
-          <Skeleton className={`h-[15px] w-[360px] ${ON_DARK}`} />
+          <Skeleton className={`h-[21px] w-[360px] ${ON_DARK}`} />
           <div className="flex items-center gap-5">
             {[0, 1, 2].map((index) => (
-              <Skeleton key={index} className={`h-[15px] w-[70px] ${ON_DARK}`} />
+              <Skeleton key={index} className={`h-[21px] w-[70px] ${ON_DARK}`} />
             ))}
           </div>
         </div>
@@ -75,18 +76,24 @@ export default function LoadingSkeleton() {
   return (
     <Page appBar={<LoadingAppBar />}>
       <div aria-busy="true" className="flex flex-col gap-6">
-        <span className="sr-only">Loading</span>
+        {/* Polite, so a screen reader says "Loading" once the region is in rather than
+            interrupting whatever it was reading. */}
+        <span aria-live="polite" className="sr-only">
+          Loading
+        </span>
 
-        {/* Logistics: four rows of a label over a value, hairline between. */}
+        {/* Logistics: four rows of a label over a value, hairline between. The blocks take the
+            heights of the real row in SessionPage — a 13px label at 1.4 is 18px, a 17px value
+            23.8px — so the rows do not move when the content lands. */}
         <SkeletonSurface>
           <div className="flex flex-col">
             {[0, 1, 2, 3].map((index) => (
               <div
                 key={index}
-                className="border-hairline flex flex-col gap-2 border-t py-3.5 first:border-t-0"
+                className="border-hairline flex flex-col gap-1 border-t py-3.5 first:border-t-0"
               >
-                <Skeleton className="h-3 w-[90px]" />
-                <Skeleton className="h-4 w-[320px]" />
+                <Skeleton className="h-[18px] w-[90px]" />
+                <Skeleton className="h-6 w-[320px]" />
               </div>
             ))}
           </div>

@@ -6,6 +6,8 @@
  * under `content`, and the errors are the status codes the contract lists for each route.
  */
 
+import { isIsoDate } from '@/lib/dates'
+
 // Variant ids are declared by the candidate's content, not by the frontend.
 export type Variant = string
 
@@ -96,35 +98,28 @@ export interface ExpiredCandidate {
   email: string | null
 }
 
+/**
+ * What a 410 carries, whichever route answered it: both the session fetch and the answer
+ * submission can find the link gone, and both hand the page the same contact to show.
+ */
+export interface ExpiredResult {
+  kind: 'expired'
+  candidate: ExpiredCandidate
+  expires_at: string | null
+}
+
 export type SessionFetchResult =
   | { kind: 'ok'; data: SessionContentResponse }
   | { kind: 'not_found' }
-  | { kind: 'expired'; candidate: ExpiredCandidate; expires_at: string | null }
+  | ExpiredResult
   | { kind: 'error'; detail: string }
 
 export type SubmitAnswersResult =
   | { kind: 'ok'; data: SubmitAnswersResponse }
   | { kind: 'not_found' }
-  | { kind: 'expired' }
+  | ExpiredResult
   | { kind: 'invalid'; detail: string }
   | { kind: 'error'; detail: string }
-
-async function readDetail(response: Response): Promise<string> {
-  try {
-    const body: unknown = await response.json()
-    if (
-      body &&
-      typeof body === 'object' &&
-      'detail' in body &&
-      typeof (body as { detail: unknown }).detail === 'string'
-    ) {
-      return (body as { detail: string }).detail
-    }
-  } catch {
-    // Fall through to the generic message below.
-  }
-  return `Request failed with status ${response.status}.`
-}
 
 function readRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -136,29 +131,49 @@ function readString(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
+/** The parsed body, or null when there is none to parse. Each caller falls back on its own. */
+async function readBody(response: Response): Promise<unknown> {
+  try {
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+async function readDetail(response: Response): Promise<string> {
+  const detail = readString(readRecord(await readBody(response)).detail)
+  return detail ?? `Request failed with status ${response.status}.`
+}
+
+/** A bare address, the only form that is safe to drop into a `mailto:` href unescaped. */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+$/
+
+/**
+ * The candidate's address, or null when the backend sent something that is not one. The page
+ * turns this into a `mailto:` link, so a display form ("Jordan Sample <jordan@example.com>")
+ * and anything carrying mailto headers ("jordan@example.com?subject=…") are dropped rather
+ * than repaired: the page then points the reader back at the message instead.
+ */
+function readEmail(value: unknown): string | null {
+  const email = readString(value)
+  return email !== null && EMAIL_SHAPE.test(email) && !email.includes('?') ? email : null
+}
+
 /**
  * The 410 body: `{"detail", "candidate": {"name", "email"}, "expires_at"}`. Read field by
  * field rather than cast, because an expired link is exactly the case where the page has no
  * other copy of the session to fall back on: anything missing or of the wrong type becomes
- * null and the page drops that part of the message. `expires_at` also has to parse as a date,
- * since the page prints it.
+ * null and the page drops that part of the message. `expires_at` also has to look like an ISO
+ * timestamp, since the page prints it.
  */
-async function readExpired(response: Response): Promise<SessionFetchResult> {
-  let body: unknown = null
-  try {
-    body = await response.json()
-  } catch {
-    // An unreadable body leaves every field null.
-  }
-
-  const record = readRecord(body)
+async function readExpired(response: Response): Promise<ExpiredResult> {
+  const record = readRecord(await readBody(response))
   const candidate = readRecord(record.candidate)
-  const expiresAt = readString(record.expires_at)
 
   return {
     kind: 'expired',
-    candidate: { name: readString(candidate.name), email: readString(candidate.email) },
-    expires_at: expiresAt !== null && Number.isFinite(Date.parse(expiresAt)) ? expiresAt : null,
+    candidate: { name: readString(candidate.name), email: readEmail(candidate.email) },
+    expires_at: isIsoDate(record.expires_at) ? record.expires_at : null,
   }
 }
 
@@ -196,10 +211,9 @@ export async function submitAnswers(
   if (response.status === 201) {
     try {
       const data = (await response.json()) as SubmitAnswersResponse
-      if (
-        typeof data.submitted_at !== 'string' ||
-        !Number.isFinite(Date.parse(data.submitted_at))
-      ) {
+      // A null body throws on the property read, which the catch below turns into the same
+      // "could not confirm" result as a timestamp of the wrong shape.
+      if (!isIsoDate(data.submitted_at)) {
         throw new Error('Invalid submission timestamp')
       }
       return { kind: 'ok', data }
@@ -211,7 +225,9 @@ export async function submitAnswers(
     }
   }
   if (response.status === 404) return { kind: 'not_found' }
-  if (response.status === 410) return { kind: 'expired' }
+  // The same 410 body as the session fetch, so a link that expires mid-form takes the reader
+  // to the expired page with the candidate's contact rather than to a "refresh" message.
+  if (response.status === 410) return await readExpired(response)
   if (response.status === 422) return { kind: 'invalid', detail: await readDetail(response) }
   return { kind: 'error', detail: await readDetail(response) }
 }
