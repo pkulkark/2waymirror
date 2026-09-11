@@ -602,4 +602,58 @@ describe('SessionPage', () => {
     expect(screen.getByRole('heading', { name: '2WayMirror' })).toBeInTheDocument()
     expect(screen.getByText('Built by the candidate.')).toBeInTheDocument()
   })
+  test('a submit in flight survives leaving and returning to the screening tab', async () => {
+    let resolvePost: (value: Response) => void = () => {}
+    const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST')
+        return new Promise<Response>((resolve) => (resolvePost = resolve))
+      return Promise.resolve(jsonResponse(200, sample))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    renderAt('tok123')
+    await user.type(await screen.findByLabelText(/How is the team structured/), 'Four squads.')
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }))
+    expect(screen.getByRole('button', { name: 'Submitting...' })).toBeDisabled()
+
+    await user.click(screen.getByRole('link', { name: /Behavioral/ }))
+    expect(screen.queryByRole('button', { name: /Submit/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: /Screening/ }))
+
+    // Still pending: the remounted form is disabled and a second click sends nothing.
+    const pending = screen.getByRole('button', { name: 'Submitting...' })
+    expect(pending).toBeDisabled()
+    await user.click(pending)
+    const posts = fetchMock.mock.calls.filter(
+      ([, init]) => (init as RequestInit)?.method === 'POST',
+    )
+    expect(posts).toHaveLength(1)
+
+    resolvePost(jsonResponse(201, { submitted_at: '2026-09-02T10:00:00Z' }))
+    await waitFor(() => {
+      expect(screen.getByText('Thanks, your answers are in')).toBeInTheDocument()
+    })
+  })
+
+  test('a failure while on another tab is shown on return to the screening tab', async () => {
+    let rejectPost: (value: Response) => void = () => {}
+    const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return new Promise<Response>((resolve) => (rejectPost = resolve))
+      return Promise.resolve(jsonResponse(200, sample))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    renderAt('tok123')
+    await user.type(await screen.findByLabelText(/How is the team structured/), 'Four squads.')
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }))
+    await user.click(screen.getByRole('link', { name: /Behavioral/ }))
+
+    rejectPost(jsonResponse(500, { detail: 'Storage failed.' }))
+    await user.click(screen.getByRole('link', { name: /Screening/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Storage failed.')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Submit answers' })).toBeEnabled()
+  })
 })

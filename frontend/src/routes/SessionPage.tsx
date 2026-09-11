@@ -198,78 +198,35 @@ function SectionItems({ section }: { section: Content['sections'][number] }) {
 }
 
 interface CompanyQuestionsFormProps {
-  token: string
   questions: CompanyQuestion[]
   /**
-   * The typed answers, held by the page so that unsent text survives a tab change. Browser
+   * The typed answers and the submission state are held by the page, not the form, so that
+   * leaving the screening tab mid-request and coming back shows the same pending or failed
+   * state, and a second submit cannot start while the first is in flight. Browser
    * persistence across a closed tab is #109.
    */
   values: Record<string, string>
   onChange: (id: string, value: string) => void
-  /** Called with the timestamp the API recorded for the submission. */
-  onSubmitted: (submittedAt: string) => void
-  onAlreadySubmitted: () => void
+  submission: AnswerSubmission
 }
 
 function CompanyQuestionsForm({
-  token,
   questions,
   values,
   onChange,
-  onSubmitted,
-  onAlreadySubmitted,
+  submission,
 }: CompanyQuestionsFormProps) {
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setFormError(null)
-    setFieldErrors({})
-
-    const missing = questions.filter((q) => q.required && !values[q.id]?.trim())
-    if (missing.length > 0) {
-      setFieldErrors(
-        Object.fromEntries(missing.map((q) => [q.id, 'This question requires an answer.'])),
-      )
-      return
-    }
-
-    const answers = Object.fromEntries(
-      Object.entries(values).filter(([, value]) => value.trim().length > 0),
-    )
-
-    setSubmitting(true)
-    const result = await submitAnswers(token, answers)
-    setSubmitting(false)
-
-    if (result.kind === 'ok') {
-      onSubmitted(result.data.submitted_at)
-      return
-    }
-    if (result.kind === 'already_submitted') {
-      onAlreadySubmitted()
-      return
-    }
-    if (result.kind === 'invalid') {
-      const matched = questions.find((q) => result.detail.includes(q.id))
-      if (matched) {
-        setFieldErrors({ [matched.id]: result.detail })
-      } else {
-        setFormError(result.detail)
-      }
-      return
-    }
-    if (result.kind === 'not_found' || result.kind === 'expired') {
-      setFormError('This session is no longer available. Refresh the page for the latest state.')
-      return
-    }
-    setFormError(result.detail)
-  }
+  const { submitting, formError, fieldErrors, submit } = submission
 
   return (
-    <form onSubmit={handleSubmit} className="text-on-dark flex flex-col gap-5" noValidate>
+    <form
+      onSubmit={(event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault()
+        submit()
+      }}
+      className="text-on-dark flex flex-col gap-5"
+      noValidate
+    >
       {formError && (
         <Alert variant="destructive">
           <AlertDescription>{formError}</AlertDescription>
@@ -297,6 +254,88 @@ function CompanyQuestionsForm({
   )
 }
 
+interface AnswerSubmission {
+  submitting: boolean
+  formError: string | null
+  fieldErrors: Record<string, string>
+  submit: () => void
+}
+
+interface UseAnswerSubmissionArgs {
+  token: string | undefined
+  questions: CompanyQuestion[]
+  values: Record<string, string>
+  onSubmitted: (submittedAt: string) => void
+  onAlreadySubmitted: () => void
+}
+
+/**
+ * The submit request and its outcome, owned by the page. The in-flight flag lives in a ref as
+ * well as in state so that a click racing a pending request is ignored even before React
+ * re-renders, and a request that finishes after the form unmounted still lands its result.
+ */
+function useAnswerSubmission({
+  token,
+  questions,
+  values,
+  onSubmitted,
+  onAlreadySubmitted,
+}: UseAnswerSubmissionArgs): AnswerSubmission {
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const inFlight = useRef(false)
+
+  const submit = async () => {
+    if (!token || inFlight.current) return
+    setFormError(null)
+    setFieldErrors({})
+
+    const missing = questions.filter((q) => q.required && !values[q.id]?.trim())
+    if (missing.length > 0) {
+      setFieldErrors(
+        Object.fromEntries(missing.map((q) => [q.id, 'This question requires an answer.'])),
+      )
+      return
+    }
+
+    const answers = Object.fromEntries(
+      Object.entries(values).filter(([, value]) => value.trim().length > 0),
+    )
+
+    inFlight.current = true
+    setSubmitting(true)
+    const result = await submitAnswers(token, answers)
+    inFlight.current = false
+    setSubmitting(false)
+
+    if (result.kind === 'ok') {
+      onSubmitted(result.data.submitted_at)
+      return
+    }
+    if (result.kind === 'already_submitted') {
+      onAlreadySubmitted()
+      return
+    }
+    if (result.kind === 'invalid') {
+      const matched = questions.find((q) => result.detail.includes(q.id))
+      if (matched) {
+        setFieldErrors({ [matched.id]: result.detail })
+      } else {
+        setFormError(result.detail)
+      }
+      return
+    }
+    if (result.kind === 'not_found' || result.kind === 'expired') {
+      setFormError('This session is no longer available. Refresh the page for the latest state.')
+      return
+    }
+    setFormError(result.detail)
+  }
+
+  return { submitting, formError, fieldErrors, submit: () => void submit() }
+}
+
 export default function SessionPage() {
   const { token, section: sectionParam } = useParams<{ token: string; section?: string }>()
   const navigate = useNavigate()
@@ -305,6 +344,25 @@ export default function SessionPage() {
   // Held here, not in the form, so that leaving the screening tab and coming back keeps
   // whatever was typed. Persisting it in the browser is #109.
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const submission = useAnswerSubmission({
+    token,
+    questions: state.status === 'live' ? state.content.company_questions : [],
+    values: answers,
+    onSubmitted: (submittedAt) =>
+      setState((previous) =>
+        previous.status === 'live'
+          ? {
+              status: 'submitted',
+              session: { ...previous.session, answers_submitted: true, submitted_at: submittedAt },
+              content: previous.content,
+            }
+          : previous,
+      ),
+    onAlreadySubmitted: () =>
+      setState((previous) =>
+        previous.status === 'live' ? { ...previous, status: 'already_submitted' } : previous,
+      ),
+  })
 
   useEffect(() => {
     if (!token) return
@@ -428,18 +486,10 @@ export default function SessionPage() {
         {screening && state.status === 'live' && (
           <Surface title="Questions for you" count={statusChip} dark>
             <CompanyQuestionsForm
-              token={token}
               questions={content.company_questions}
               values={answers}
               onChange={(id, value) => setAnswers((previous) => ({ ...previous, [id]: value }))}
-              onSubmitted={(submittedAt) =>
-                setState({
-                  status: 'submitted',
-                  session: { ...session, answers_submitted: true, submitted_at: submittedAt },
-                  content,
-                })
-              }
-              onAlreadySubmitted={() => setState({ status: 'already_submitted', session, content })}
+              submission={submission}
             />
           </Surface>
         )}
