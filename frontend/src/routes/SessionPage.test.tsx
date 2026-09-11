@@ -379,10 +379,10 @@ describe('SessionPage', () => {
 
     expect(screen.getByRole('button', { name: /Initial conversation/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Screening/ })).toHaveAttribute('aria-current', 'page')
+    // Exact match: toHaveTextContent would accept "/s/tok123/made-up" before the redirect.
     await waitFor(() => {
-      expect(screen.getByTestId('pathname')).toHaveTextContent('/s/tok123')
+      expect(screen.getByTestId('pathname').textContent).toBe('/s/tok123')
     })
-    expect(screen.getByTestId('pathname').textContent).toBe('/s/tok123')
   })
 
   test('fetches the session once across tab changes, and scrolls back to the top', async () => {
