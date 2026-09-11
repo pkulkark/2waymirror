@@ -102,6 +102,7 @@
    SessionPage drops the utility under prefers-reduced-motion. */
 @theme {
   --animate-tab-in: tab-in 150ms ease-out;
+  --animate-sent-in: tab-in 200ms ease-out;
 
   @keyframes tab-in {
     from {

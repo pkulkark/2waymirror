@@ -96,7 +96,6 @@ export type SubmitAnswersResult =
   | { kind: 'ok'; data: SubmitAnswersResponse }
   | { kind: 'not_found' }
   | { kind: 'expired' }
-  | { kind: 'already_submitted' }
   | { kind: 'invalid'; detail: string }
   | { kind: 'error'; detail: string }
 
@@ -149,12 +148,24 @@ export async function submitAnswers(
   }
 
   if (response.status === 201) {
-    const data = (await response.json()) as SubmitAnswersResponse
-    return { kind: 'ok', data }
+    try {
+      const data = (await response.json()) as SubmitAnswersResponse
+      if (
+        typeof data.submitted_at !== 'string' ||
+        !Number.isFinite(Date.parse(data.submitted_at))
+      ) {
+        throw new Error('Invalid submission timestamp')
+      }
+      return { kind: 'ok', data }
+    } catch {
+      return {
+        kind: 'error',
+        detail: 'Could not confirm your answers were saved. Please try again.',
+      }
+    }
   }
   if (response.status === 404) return { kind: 'not_found' }
   if (response.status === 410) return { kind: 'expired' }
-  if (response.status === 409) return { kind: 'already_submitted' }
   if (response.status === 422) return { kind: 'invalid', detail: await readDetail(response) }
   return { kind: 'error', detail: await readDetail(response) }
 }
