@@ -10,5 +10,5 @@ evidence:
     type: pr
 ---
 I led the migration of our task queue from a single Redis instance to a sharded setup with
-per-tenant isolation, cutting p99 latency by 40 percent during peak load with no downtime for
+per-tenant isolation[^1], cutting p99 latency by 40 percent during peak load with no downtime for
 any customer.

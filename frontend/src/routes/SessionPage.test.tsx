@@ -126,13 +126,14 @@ describe('SessionPage', () => {
     expect(screen.getByText('Looking for more ownership.')).toBeInTheDocument()
     expect(screen.getByText('Availability')).toBeInTheDocument()
     expect(screen.getByText('Two weeks notice')).toBeInTheDocument()
-    const typedLink = screen.getByRole('link', { name: /Conference talk/ })
+    const typedLink = screen.getByRole('link', { name: 'Conference talk' })
     expect(typedLink).toHaveAttribute('href', 'https://example.com/talk')
-    expect(typedLink).toHaveTextContent('Talk: Conference talk')
+    // The type word sits beside the link now, not as a prefix inside it.
+    expect(typedLink.textContent).toBe('Conference talk')
+    expect(container.querySelector('#evidence-why-leaving-1')).toHaveTextContent('talk')
     const untypedLink = screen.getByRole('link', { name: 'Untyped link' })
     expect(untypedLink).toHaveAttribute('href', 'https://example.com/untyped')
     expect(untypedLink).toHaveTextContent('Untyped link')
-    expect(untypedLink.textContent).not.toContain(':')
   })
 
   test('shows a not-found state on 404', async () => {
