@@ -27,6 +27,13 @@ function stubReducedMotion() {
   )
 }
 
+/** The one div react-markdown renders into: the prose type and the code rules hang off it. */
+function prose(container: HTMLElement): HTMLElement {
+  const wrapper = container.querySelector<HTMLElement>('div.font-serif')
+  if (!wrapper) throw new Error('expected a prose wrapper')
+  return wrapper
+}
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
@@ -54,16 +61,46 @@ describe('Answer', () => {
       '',
       'See the [upstream note](https://example.com/note).',
     ].join('\n')
-    render(<Answer item={item({ answer_md: markdown })} />)
+    const { container } = render(<Answer item={item({ answer_md: markdown })} />)
 
     expect(screen.getByText('stressed').tagName).toBe('EM')
     expect(screen.getByText('inline code').tagName).toBe('CODE')
-    expect(screen.getByText('inline code')).toHaveClass('font-sans')
+    // The prose type is set once on the wrapper, and inline code is styled by selector from it.
+    expect(prose(container)).toHaveClass('text-ink', 'font-serif', 'text-[17px]')
+    expect(prose(container).className).toContain('[&_:not(pre)>code]:font-sans')
     expect(screen.getByText('first bullet').closest('ul')).toHaveClass('list-disc')
     expect(screen.getByText('first step').closest('ol')).toHaveClass('list-decimal')
     const link = screen.getByRole('link', { name: 'upstream note' })
     expect(link).toHaveClass('text-moss')
     expect(link.closest('sup')).toBeNull()
+  })
+
+  test('renders a fenced code block as a monospace pre, styled from the wrapper', () => {
+    const markdown = ['Like so:', '', '```py', 'print("hi")', '```'].join('\n')
+    const { container } = render(<Answer item={item({ answer_md: markdown })} />)
+
+    const block = container.querySelector('pre code')
+    expect(block).toHaveTextContent('print("hi")')
+    expect(prose(container).className).toContain('[&_pre]:font-mono')
+    // The inline-code rule must not reach the code inside a pre.
+    expect(prose(container).className).toContain('[&_:not(pre)>code]')
+  })
+
+  test('renders a heading in the body one level below the question heading', () => {
+    const markdown = ['## The migration', '', 'It went fine.'].join('\n')
+    render(<Answer item={item({ answer_md: markdown })} />)
+
+    const heading = screen.getByRole('heading', { name: 'The migration' })
+    expect(heading.tagName).toBe('H4')
+    expect(heading).toHaveClass('font-serif', 'text-[20px]', 'font-medium')
+  })
+
+  test('styles a blockquote and a rule', () => {
+    const markdown = ['> A quoted line.', '', '---', '', 'After.'].join('\n')
+    const { container } = render(<Answer item={item({ answer_md: markdown })} />)
+
+    expect(container.querySelector('blockquote')).toHaveClass('border-l-2', 'text-muted-ink')
+    expect(container.querySelector('hr')).toHaveClass('border-hairline')
   })
 
   test('leaves out the summary when the answer has none', () => {

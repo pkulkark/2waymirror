@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Code, FileText, MapPin, MessagesSquare, User, type LucideIcon } from 'lucide-react'
 
 import {
@@ -307,6 +307,7 @@ function useAnswerSubmission({
 
 export default function SessionPage() {
   const { token, section: sectionParam } = useParams<{ token: string; section?: string }>()
+  const { hash } = useLocation()
   const navigate = useNavigate()
   const reducedMotion = useReducedMotion()
   const [state, setState] = useState<PageState>({ status: 'loading' })
@@ -383,6 +384,16 @@ export default function SessionPage() {
     }
     previousSectionId.current = activeSectionId
   }, [activeSectionId])
+
+  // A shared link to an evidence row lands on a page that is still loading, so the browser has
+  // nothing to scroll to and gives up. Jump once the content is in. `loaded` only ever flips
+  // false to true, so submitting the form later does not send the reader back up the page.
+  const loaded = state.status !== 'loading'
+
+  useEffect(() => {
+    if (!loaded || !hash) return
+    document.getElementById(hash.slice(1))?.scrollIntoView()
+  }, [hash, loaded])
 
   if (!token) return <NotFoundState />
   if (state.status === 'loading') return <LoadingSkeleton />

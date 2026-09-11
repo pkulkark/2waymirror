@@ -1,41 +1,50 @@
 import type { ComponentPropsWithoutRef } from 'react'
 
-import { EVIDENCE_HREF_PREFIX, footnotePosition } from '@/lib/footnotes'
+import { TEXT_LINK } from '@/lib/styles'
 import { cn } from '@/lib/utils'
 
 type FootnoteLinkProps = ComponentPropsWithoutRef<'a'> & {
   /** react-markdown hands every component the mdast node; it is not a DOM attribute. */
   node?: unknown
+  /**
+   * The evidence position, put on the node by `remarkFootnoteLinks` and passed through by
+   * react-markdown. Only a marker the plugin made carries it, so a link the author wrote to
+   * `#evidence-...` by hand still renders as an ordinary link.
+   */
+  'data-footnote'?: string
 }
 
 /**
- * The `a` component for an answer's Markdown: a link that `linkFootnotes` produced renders as a
- * superscript evidence marker, and every other link as a normal anchor.
+ * The `a` component for an answer's Markdown: an evidence marker renders as a superscript
+ * number, and every other link as a normal anchor.
  */
-export function FootnoteLink({ node, href, children, className, ...rest }: FootnoteLinkProps) {
+export function FootnoteLink({
+  node,
+  'data-footnote': position,
+  href,
+  children,
+  className,
+  ...rest
+}: FootnoteLinkProps) {
   void node
 
-  if (href?.startsWith(EVIDENCE_HREF_PREFIX)) {
+  if (position !== undefined) {
     return (
       <sup className="align-super leading-[0]">
         <a
           {...rest}
           href={href}
-          aria-label={`Evidence ${footnotePosition(href)}`}
-          className={cn('text-moss hover:text-moss-hover text-[12px] font-semibold', className)}
+          aria-label={`Evidence ${position}`}
+          className={cn(TEXT_LINK, 'text-[12px] font-semibold no-underline', className)}
         >
-          {children}
+          {position}
         </a>
       </sup>
     )
   }
 
   return (
-    <a
-      {...rest}
-      href={href}
-      className={cn('text-moss hover:text-moss-hover underline underline-offset-2', className)}
-    >
+    <a {...rest} href={href} className={cn(TEXT_LINK, className)}>
       {children}
     </a>
   )
