@@ -1,6 +1,7 @@
 import { Briefcase, GitFork, Link as LinkIcon, Mail, type LucideIcon } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
+import { FOCUS_RING } from '@/lib/styles'
 import { cn } from '@/lib/utils'
 
 export interface AppBarLink {
@@ -51,7 +52,10 @@ function ProfileLink({ link, icon: Icon }: { link: AppBarLink; icon: LucideIcon 
     <a
       href={link.url}
       {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
-      className="text-on-dark focus-visible:outline-moss flex items-center gap-[7px] text-[15px] leading-[1.4] font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+      className={cn(
+        'text-on-dark flex items-center gap-[7px] text-[15px] leading-[1.4] font-semibold hover:underline',
+        FOCUS_RING,
+      )}
     >
       <Icon aria-hidden="true" strokeWidth={1.4} className="text-on-dark-muted size-4 shrink-0" />
       <span>{link.label}</span>

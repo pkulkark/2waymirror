@@ -6,7 +6,7 @@ import { CollapseBody, CollapseChevron } from '@/components/Collapse'
 import { FootnoteLink } from '@/components/FootnoteLink'
 import { useCollapse } from '@/lib/collapse'
 import { evidenceAnchorId, remarkFootnoteLinks } from '@/lib/footnotes'
-import { TEXT_LINK } from '@/lib/styles'
+import { FOCUS_RING, TEXT_LINK } from '@/lib/styles'
 import { cn } from '@/lib/utils'
 
 export interface AnswerProps {
@@ -107,7 +107,10 @@ export default function Answer({ item, defaultOpen = true }: AnswerProps) {
       <h3 className="flex">
         <button
           {...triggerProps}
-          className="focus-visible:outline-moss flex w-full cursor-pointer items-baseline justify-between gap-6 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+          className={cn(
+            'flex w-full cursor-pointer items-baseline justify-between gap-6 text-left',
+            FOCUS_RING,
+          )}
         >
           <span className="text-ink font-serif text-[20px] leading-[1.3] font-medium">
             {item.question}
