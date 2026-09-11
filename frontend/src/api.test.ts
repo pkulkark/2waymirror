@@ -88,13 +88,13 @@ describe('submitAnswers', () => {
     expect(result).toEqual({ kind: 'ok', data: { submitted_at: '2026-09-02T00:00:00Z' } })
   })
 
-  test('returns already_submitted on 409', async () => {
+  test('treats an unexpected conflict as a recoverable error', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(jsonResponse(409, { detail: 'Answers already submitted.' })),
     )
     const result = await submitAnswers('tok', { q1: 'answer' })
-    expect(result).toEqual({ kind: 'already_submitted' })
+    expect(result).toEqual({ kind: 'error', detail: 'Answers already submitted.' })
   })
 
   test('returns invalid on 422 with detail', async () => {
@@ -130,3 +130,14 @@ describe('submitAnswers', () => {
     expect(result.kind).toBe('error')
   })
 })
+
+test.each([null, {}, { submitted_at: 'invalid' }])(
+  'handles an invalid success response without getting stuck sending: %s',
+  async (body) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(201, body)))
+    expect(await submitAnswers('tok123', { team: 'Four squads.' })).toEqual({
+      kind: 'error',
+      detail: 'Could not confirm your answers were saved. Please try again.',
+    })
+  },
+)

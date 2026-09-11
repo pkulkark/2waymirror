@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Code, FileText, MapPin, MessagesSquare, User, type LucideIcon } from 'lucide-react'
+import {
+  CheckCircle2,
+  Code,
+  FileText,
+  LoaderCircle,
+  MapPin,
+  MessagesSquare,
+  User,
+  type LucideIcon,
+} from 'lucide-react'
 
 import {
   fetchSession,
@@ -19,6 +28,12 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useReducedMotion } from '@/lib/motion'
+import {
+  clearAnswerDraft,
+  currentAnswers,
+  readAnswerDraft,
+  writeAnswerDraft,
+} from '@/lib/answerDrafts'
 import { cn } from '@/lib/utils'
 
 type PageState =
@@ -27,8 +42,6 @@ type PageState =
   | { status: 'expired' }
   | { status: 'error'; detail: string }
   | { status: 'live'; session: Session; content: Content }
-  | { status: 'submitted'; session: Session; content: Content }
-  | { status: 'already_submitted'; session: Session; content: Content }
 
 const SHORT_MONTHS = [
   'Jan',
@@ -171,8 +184,8 @@ interface CompanyQuestionsFormProps {
   /**
    * The typed answers and the submission state are held by the page, not the form, so that
    * leaving the screening tab mid-request and coming back shows the same pending or failed
-   * state, and a second submit cannot start while the first is in flight. Browser
-   * persistence across a closed tab is #109.
+   * state, and a second submit cannot start while the first is in flight. The page also
+   * persists edits per session token so the draft survives reloads.
    */
   values: Record<string, string>
   onChange: (id: string, value: string) => void
@@ -186,6 +199,7 @@ function CompanyQuestionsForm({
   submission,
 }: CompanyQuestionsFormProps) {
   const { submitting, formError, fieldErrors, submit } = submission
+  const reducedMotion = useReducedMotion()
 
   return (
     <form
@@ -195,29 +209,58 @@ function CompanyQuestionsForm({
       }}
       className="text-on-dark flex flex-col gap-5"
       noValidate
+      aria-busy={submitting}
     >
+      <p className="text-on-dark-muted text-[15px]">
+        Answers stay editable until the link expires.
+      </p>
       {formError && (
-        <Alert variant="destructive">
-          <AlertDescription>{formError}</AlertDescription>
-        </Alert>
+        <p role="alert" className="text-danger-on-dark text-[15px]">
+          {formError}
+        </p>
       )}
       {questions.map((q) => (
         <div key={q.id} className="flex flex-col gap-1.5">
-          <label htmlFor={`question-${q.id}`} className="text-sm font-medium">
+          <label
+            htmlFor={`question-${q.id}`}
+            className="flex items-center gap-2.5 text-[15px] font-semibold"
+          >
             {q.question}
-            {q.required && <span className="text-danger-on-dark ml-1">*</span>}
+            {q.required && (
+              <span className="border-dark-border text-on-dark-muted rounded-full border px-2 py-0.5 text-xs font-normal">
+                Required
+              </span>
+            )}
           </label>
           <Textarea
             id={`question-${q.id}`}
             aria-invalid={Boolean(fieldErrors[q.id])}
+            aria-describedby={fieldErrors[q.id] ? `error-${q.id}` : undefined}
+            required={q.required}
+            disabled={submitting}
+            className="bg-dark-input border-dark-border text-on-dark h-24 min-h-24 field-sizing-fixed rounded-lg px-3.5 py-3 text-[15px] shadow-none focus-visible:border-moss focus-visible:ring-moss focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-dark aria-invalid:border-danger-on-dark aria-invalid:ring-danger-on-dark motion-reduce:transition-none md:text-[15px]"
             value={values[q.id] ?? ''}
             onChange={(e) => onChange(q.id, e.target.value)}
           />
-          {fieldErrors[q.id] && <p className="text-danger-on-dark text-xs">{fieldErrors[q.id]}</p>}
+          {fieldErrors[q.id] && (
+            <p id={`error-${q.id}`} role="alert" className="text-danger-on-dark text-sm">
+              {fieldErrors[q.id]}
+            </p>
+          )}
         </div>
       ))}
-      <Button type="submit" disabled={submitting} className="w-fit">
-        {submitting ? 'Submitting...' : 'Submit answers'}
+      <Button
+        type="submit"
+        disabled={submitting}
+        className="bg-on-dark text-dark hover:bg-on-dark/90 focus-visible:ring-moss focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-dark h-11 w-fit rounded-lg px-5 text-[15px] font-semibold motion-reduce:transition-none"
+      >
+        {submitting && (
+          <LoaderCircle
+            aria-hidden="true"
+            className={cn('size-4', !reducedMotion && 'animate-spin')}
+          />
+        )}
+        {submitting ? 'Sending' : 'Send answers'}
       </Button>
     </form>
   )
@@ -228,14 +271,18 @@ interface AnswerSubmission {
   formError: string | null
   fieldErrors: Record<string, string>
   submit: () => void
+  clearErrors: () => void
 }
 
 interface UseAnswerSubmissionArgs {
   token: string | undefined
   questions: CompanyQuestion[]
   values: Record<string, string>
-  onSubmitted: (submittedAt: string) => void
-  onAlreadySubmitted: () => void
+  onSubmitted: (
+    submittedAt: string,
+    answers: Record<string, string>,
+    questions: CompanyQuestion[],
+  ) => void
 }
 
 /**
@@ -248,12 +295,18 @@ function useAnswerSubmission({
   questions,
   values,
   onSubmitted,
-  onAlreadySubmitted,
 }: UseAnswerSubmissionArgs): AnswerSubmission {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const inFlight = useRef(false)
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   const submit = async () => {
     if (!token || inFlight.current) return
@@ -269,21 +322,20 @@ function useAnswerSubmission({
     }
 
     const answers = Object.fromEntries(
-      Object.entries(values).filter(([, value]) => value.trim().length > 0),
+      Object.entries(currentAnswers(values, questions)).filter(
+        ([, value]) => value.trim().length > 0,
+      ),
     )
 
     inFlight.current = true
     setSubmitting(true)
     const result = await submitAnswers(token, answers)
+    if (!mounted.current) return
     inFlight.current = false
     setSubmitting(false)
 
     if (result.kind === 'ok') {
-      onSubmitted(result.data.submitted_at)
-      return
-    }
-    if (result.kind === 'already_submitted') {
-      onAlreadySubmitted()
+      onSubmitted(result.data.submitted_at, answers, questions)
       return
     }
     if (result.kind === 'invalid') {
@@ -302,36 +354,54 @@ function useAnswerSubmission({
     setFormError(result.detail)
   }
 
-  return { submitting, formError, fieldErrors, submit: () => void submit() }
+  return {
+    submitting,
+    formError,
+    fieldErrors,
+    submit: () => void submit(),
+    clearErrors: () => {
+      setFormError(null)
+      setFieldErrors({})
+    },
+  }
 }
 
 export default function SessionPage() {
-  const { token, section: sectionParam } = useParams<{ token: string; section?: string }>()
+  const { token } = useParams<{ token: string }>()
+  // Changing companies starts a new state owner; tab changes keep it mounted.
+  return <SessionPageForToken key={token} token={token} />
+}
+
+function SessionPageForToken({ token }: { token: string | undefined }) {
+  const { section: sectionParam } = useParams<{ section?: string }>()
   const { hash } = useLocation()
   const navigate = useNavigate()
   const reducedMotion = useReducedMotion()
   const [state, setState] = useState<PageState>({ status: 'loading' })
-  // Held here, not in the form, so that leaving the screening tab and coming back keeps
-  // whatever was typed. Persisting it in the browser is #109.
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [editing, setEditing] = useState(false)
   const submission = useAnswerSubmission({
     token,
     questions: state.status === 'live' ? state.content.company_questions : [],
     values: answers,
-    onSubmitted: (submittedAt) =>
+    onSubmitted: (submittedAt, sentAnswers, questions) => {
+      if (token) clearAnswerDraft(token)
+      setEditing(false)
       setState((previous) =>
         previous.status === 'live'
           ? {
-              status: 'submitted',
-              session: { ...previous.session, answers_submitted: true, submitted_at: submittedAt },
-              content: previous.content,
+              ...previous,
+              session: {
+                ...previous.session,
+                answers_submitted: true,
+                submitted_at: submittedAt,
+                answers: sentAnswers,
+                questions,
+              },
             }
           : previous,
-      ),
-    onAlreadySubmitted: () =>
-      setState((previous) =>
-        previous.status === 'live' ? { ...previous, status: 'already_submitted' } : previous,
-      ),
+      )
+    },
   })
 
   useEffect(() => {
@@ -342,11 +412,13 @@ export default function SessionPage() {
     fetchSession(token).then((result) => {
       if (cancelled) return
       if (result.kind === 'ok') {
-        setState({
-          status: result.data.session.answers_submitted ? 'already_submitted' : 'live',
-          session: result.data.session,
-          content: result.data.content,
-        })
+        const { session, content } = result.data
+        const draft = readAnswerDraft(token, session.submitted_at ?? null)
+        setAnswers(
+          currentAnswers(draft?.answers ?? session.answers ?? {}, content.company_questions),
+        )
+        setEditing(!session.answers_submitted || draft !== null)
+        setState({ status: 'live', session, content })
       } else if (result.kind === 'not_found') {
         setState({ status: 'not_found' })
       } else if (result.kind === 'expired') {
@@ -403,13 +475,15 @@ export default function SessionPage() {
 
   const { session, content } = state
 
-  const sent = state.status !== 'live'
+  const sent = session.answers_submitted
   const requiredCount = content.company_questions.filter((q) => q.required).length
   const answeredRequired = content.company_questions.filter(
     (q) => q.required && answers[q.id]?.trim(),
   ).length
   const statusChip = sent
-    ? `Sent ${formatDate(session.submitted_at ?? new Date().toISOString(), LONG_MONTHS)}`
+    ? session.submitted_at
+      ? `Sent ${formatDate(session.submitted_at, LONG_MONTHS)}`
+      : 'Sent'
     : `${answeredRequired} of ${requiredCount} required answered`
   const sessionChip = `${session.company}, until ${formatDate(session.expires_at, SHORT_MONTHS)}`
 
@@ -463,31 +537,77 @@ export default function SessionPage() {
           </Surface>
         )}
 
-        {screening && state.status === 'live' && (
+        {screening && (
           <Surface title="Questions for you" count={statusChip} dark>
-            <CompanyQuestionsForm
-              questions={content.company_questions}
-              values={answers}
-              onChange={(id, value) => setAnswers((previous) => ({ ...previous, [id]: value }))}
-              submission={submission}
-            />
+            {editing ? (
+              <CompanyQuestionsForm
+                questions={content.company_questions}
+                values={answers}
+                onChange={(id, value) => {
+                  if (submission.submitting) return
+                  const next = { ...answers, [id]: value }
+                  setAnswers(next)
+                  submission.clearErrors()
+                  writeAnswerDraft(token, {
+                    submittedAt: session.submitted_at ?? null,
+                    answers: next,
+                  })
+                }}
+                submission={submission}
+              />
+            ) : (
+              <div
+                className={cn(
+                  'text-on-dark flex flex-col gap-7',
+                  !reducedMotion && 'animate-sent-in',
+                )}
+              >
+                <div className="flex items-center justify-between gap-6">
+                  <p role="status" className="flex items-center gap-2.5 text-[15px]">
+                    <CheckCircle2 aria-hidden="true" className="size-5 shrink-0" />
+                    <span>
+                      Answers sent
+                      {session.submitted_at
+                        ? ` on ${formatDate(session.submitted_at, LONG_MONTHS)}`
+                        : ''}
+                      . I will reply by email within two working days.
+                    </span>
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-dark-border text-on-dark hover:bg-dark-input hover:text-on-dark focus-visible:ring-moss focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-dark h-11 shrink-0 rounded-lg bg-transparent text-[15px] motion-reduce:transition-none"
+                    onClick={() => {
+                      submission.clearErrors()
+                      setAnswers(currentAnswers(session.answers ?? {}, content.company_questions))
+                      setEditing(true)
+                    }}
+                  >
+                    Edit answers
+                  </Button>
+                </div>
+                <dl className="flex flex-col gap-5">
+                  {(session.questions ?? []).map((question) => (
+                    <div key={question.id} className="flex flex-col gap-2">
+                      <dt className="text-[15px] font-semibold">{question.question}</dt>
+                      <dd
+                        className={cn(
+                          'whitespace-pre-wrap break-words',
+                          session.answers?.[question.id]?.trim()
+                            ? 'font-serif text-[17px] leading-[1.5]'
+                            : 'text-on-dark-muted text-[15px] italic',
+                        )}
+                      >
+                        {session.answers?.[question.id]?.trim()
+                          ? session.answers[question.id]
+                          : 'Not answered yet'}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
           </Surface>
-        )}
-
-        {screening && state.status === 'submitted' && (
-          <Alert>
-            <AlertTitle>Thanks, your answers are in</AlertTitle>
-            <AlertDescription>The candidate will follow up from here.</AlertDescription>
-          </Alert>
-        )}
-
-        {screening && state.status === 'already_submitted' && (
-          <Alert>
-            <AlertTitle>Answers already submitted</AlertTitle>
-            <AlertDescription>
-              This session already has answers on file for these questions.
-            </AlertDescription>
-          </Alert>
         )}
       </div>
     </Page>
