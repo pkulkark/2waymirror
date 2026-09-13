@@ -55,7 +55,7 @@ Variant merge rule: base value, then `variants.<variant>` overrides key by key. 
 
 - Single Vite build; API calls are relative to the origin (`/api/...`).
 - The dev server proxies `/api` to the local backend.
-- Routes: `/` landing, `/s/:token` session page, `/how-i-built-it`.
+- Routes: `/` is the public project story and build write-up; `/how-i-built-it` redirects to `/`. `/s/:token` and its section routes serve the private session experience.
 - Session page states: loading skeleton, not found, expired, live, submitted.
 
 ## Admin CLI
