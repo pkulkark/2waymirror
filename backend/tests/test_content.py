@@ -146,6 +146,111 @@ def test_load_content_unknown_variant_raises(settings: Settings) -> None:
         load_content(settings, variant="cto")
 
 
+def _copy_sample_to(tmp_path: Path) -> Path:
+    import shutil
+
+    source = tmp_path / "content"
+    shutil.copytree(SAMPLE_CONTENT_DIR, source)
+    return source
+
+
+def _settings_for(source: Path, settings: Settings) -> Settings:
+    return Settings(
+        TWM_TABLE_NAME=settings.TWM_TABLE_NAME,
+        TWM_TENANT=settings.TWM_TENANT,
+        TWM_CONTENT_SOURCE=str(source),
+        AWS_REGION=settings.AWS_REGION,
+    )
+
+
+def test_duplicate_answer_id_within_section_raises(tmp_path: Path, settings: Settings) -> None:
+    import yaml
+
+    source = _copy_sample_to(tmp_path)
+    section_path = source / "sections" / "01-initial-conversation.yaml"
+    section = yaml.safe_load(section_path.read_text())
+    section["items"].append(section["items"][0])
+    section_path.write_text(yaml.safe_dump(section))
+
+    with pytest.raises(ContentError, match="duplicate answer id"):
+        load_content(_settings_for(source, settings), variant="senior")
+
+
+def test_duplicate_answer_id_across_sections_raises(tmp_path: Path, settings: Settings) -> None:
+    import yaml
+
+    source = _copy_sample_to(tmp_path)
+    first = yaml.safe_load((source / "sections" / "01-initial-conversation.yaml").read_text())
+    second_path = source / "sections" / "02-deep-dives.yaml"
+    second = yaml.safe_load(second_path.read_text())
+    second["items"].append(first["items"][0])
+    second_path.write_text(yaml.safe_dump(second))
+
+    with pytest.raises(ContentError, match="duplicate answer id"):
+        load_content(_settings_for(source, settings), variant="senior")
+
+
+def test_invalid_answer_id_charset_raises(tmp_path: Path, settings: Settings) -> None:
+    import yaml
+
+    source = _copy_sample_to(tmp_path)
+    section_path = source / "sections" / "01-initial-conversation.yaml"
+    section = yaml.safe_load(section_path.read_text())
+    section["items"][0] = "my great story!"
+    section_path.write_text(yaml.safe_dump(section))
+
+    with pytest.raises(ContentError, match="must match"):
+        load_content(_settings_for(source, settings), variant="senior")
+
+
+def test_dangling_footnote_marker_raises(tmp_path: Path, settings: Settings) -> None:
+    source = _copy_sample_to(tmp_path)
+    # why-leaving has one evidence item; [^2] dangles for every variant.
+    answer_path = source / "answers" / "why-leaving.md"
+    answer_path.write_text(answer_path.read_text() + "\nExtra claim[^2].\n")
+
+    with pytest.raises(ContentError, match=r"\[\^2\]"):
+        load_content(_settings_for(source, settings), variant="senior")
+
+
+def test_dangling_footnote_after_variant_evidence_override_raises(
+    tmp_path: Path, settings: Settings
+) -> None:
+    source = _copy_sample_to(tmp_path)
+    # migration-project has two evidence items in base. Override senior down to one
+    # item and reference [^2] in the body: valid for principal (base list), dangling
+    # for senior (overridden list).
+    answer_path = source / "answers" / "migration-project.md"
+    answer_path.write_text(
+        "---\n"
+        "question: Tell me about a project you are proud of.\n"
+        "summary: Led a sharded queue migration.\n"
+        "evidence:\n"
+        "  - label: Public writeup of the migration\n"
+        "    url: https://example.com/writeups/queue-migration\n"
+        "    type: writeup\n"
+        "  - label: Upstream pull request\n"
+        "    url: https://example.com/sample-org/queue-migration/pull/42\n"
+        "    type: pr\n"
+        "variants:\n"
+        "  senior:\n"
+        "    evidence:\n"
+        "      - label: Only senior link\n"
+        "        url: https://example.com/senior-only\n"
+        "---\n"
+        "I led the migration[^1] with replication[^2].\n"
+    )
+
+    variant_settings = _settings_for(source, settings)
+    with pytest.raises(ContentError, match=r"\[\^2\]"):
+        load_content(variant_settings, variant="senior")
+
+    # Principal still sees the base two-item evidence list, so [^2] resolves.
+    result = load_content(variant_settings, variant="principal")
+    deep_items = {item.id: item for item in result.sections[1].items}
+    assert len(deep_items["migration-project"].evidence) == 2
+
+
 def test_cache_rereads_after_max_age(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, settings: Settings
 ) -> None:

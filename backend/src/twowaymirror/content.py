@@ -11,6 +11,7 @@ the I/O once; the (cheap, in-memory) variant merge runs on every call.
 
 from __future__ import annotations
 
+import re
 import time
 from pathlib import Path
 from typing import Any, Protocol
@@ -33,6 +34,9 @@ from twowaymirror.settings import Settings
 
 _SECTIONS_DIR = "sections"
 _ANSWERS_DIR = "answers"
+
+_ANSWER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_FOOTNOTE_RE = re.compile(r"\[\^(\d+)\]")
 
 
 class ContentError(Exception):
@@ -149,8 +153,27 @@ def _load_raw(source: _ContentSource) -> _RawContent:
     ]
 
     answer_ids: set[str] = set()
+    first_seen_in: dict[str, str] = {}
     for section in sections:
-        answer_ids.update(section.get("items", []))
+        section_id = str(section.get("id", "?"))
+        items = section.get("items", [])
+        seen_in_section: set[str] = set()
+        for answer_id in items:
+            if not _ANSWER_ID_RE.match(str(answer_id)):
+                raise ContentError(
+                    f"invalid answer id {answer_id!r} in section {section_id!r}: "
+                    "must match ^[A-Za-z0-9_-]+$"
+                )
+            if answer_id in seen_in_section:
+                raise ContentError(f"duplicate answer id {answer_id!r} in section {section_id!r}")
+            seen_in_section.add(answer_id)
+            if answer_id in first_seen_in:
+                raise ContentError(
+                    f"duplicate answer id {answer_id!r} in section {section_id!r} "
+                    f"(already in section {first_seen_in[answer_id]!r})"
+                )
+            first_seen_in[answer_id] = section_id
+            answer_ids.add(answer_id)
 
     front_matter: dict[str, dict[str, Any]] = {}
     bodies: dict[str, str] = {}
@@ -202,13 +225,23 @@ def _resolve(raw: _RawContent, variant: Variant) -> Content:
         items: list[SectionItem] = []
         for answer_id in section.get("items", []):
             merged = _merge_overrides(raw.answer_front_matter[answer_id], variant)
+            evidence = [Evidence(**item) for item in merged.get("evidence", [])]
+            body = raw.answer_bodies[answer_id]
+            for match in _FOOTNOTE_RE.finditer(body):
+                position = int(match.group(1))
+                if position < 1 or position > len(evidence):
+                    raise ContentError(
+                        f"answer {answer_id!r} for variant {variant!r} has "
+                        f"footnote [^{match.group(1)}] with no matching evidence "
+                        f"({len(evidence)} evidence item(s))"
+                    )
             items.append(
                 SectionItem(
                     id=answer_id,
                     question=merged["question"],
                     summary=merged.get("summary"),
-                    answer_md=raw.answer_bodies[answer_id],
-                    evidence=[Evidence(**item) for item in merged.get("evidence", [])],
+                    answer_md=body,
+                    evidence=evidence,
                 )
             )
         sections.append(Section(id=section["id"], title=section["title"], items=items))
