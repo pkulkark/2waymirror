@@ -88,6 +88,11 @@ jobs:
     defaults:
       run:
         working-directory: infra
+    env:
+      # Unset repository variables come through as "", which is the default
+      # for both and keeps the stack on its CloudFront hostname.
+      TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
+      TF_VAR_hosted_zone_name: ${{ vars.HOSTED_ZONE_NAME }}
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3

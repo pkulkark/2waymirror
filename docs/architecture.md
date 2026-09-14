@@ -12,7 +12,7 @@ browser ──► CloudFront
                                                            └── S3 content bucket (read-only)
 ```
 
-CloudFront rewrites S3 403/404 to `/index.html` with status 200 so client-side routes resolve. `/api/*` is never cached. The backend is deployed as a zip built by `backend/scripts/build_lambda.sh`.
+CloudFront rewrites S3 403/404 to `/index.html` with status 200 so client-side routes resolve. `/api/*` is never cached. The backend is deployed as a zip built by `backend/scripts/build_lambda.sh`. When `var.domain_name` is set the distribution also answers on that custom domain, over HTTPS with an ACM certificate in us-east-1 and Route53 alias records (ADR-0008); with it empty the default CloudFront hostname is the only entry point.
 
 ## DynamoDB single table
 

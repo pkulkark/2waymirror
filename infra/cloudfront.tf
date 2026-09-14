@@ -19,6 +19,10 @@ resource "aws_cloudfront_distribution" "main" {
   comment             = "${local.name_prefix} web + api"
   price_class         = "PriceClass_100"
 
+  # Empty when no custom domain is configured, which leaves the
+  # distribution answering on its default *.cloudfront.net hostname only.
+  aliases = local.use_custom_domain ? [var.domain_name] : []
+
   origin {
     domain_name              = aws_s3_bucket.web.bucket_regional_domain_name
     origin_id                = "s3-web"
@@ -73,10 +77,26 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # domain_name is always "" in v0 (enforced by the variable's validation),
-  # so this is always the default certificate with no aliases.
-  viewer_certificate {
-    cloudfront_default_certificate = true
+  # With no custom domain this is the CloudFront default certificate, which
+  # only covers the *.cloudfront.net hostname. With one, it is the ACM
+  # certificate read through the validation resource, so the distribution
+  # is never pointed at a certificate ACM has not issued yet.
+  dynamic "viewer_certificate" {
+    for_each = local.use_custom_domain ? [1] : []
+
+    content {
+      acm_certificate_arn      = aws_acm_certificate_validation.main[0].certificate_arn
+      ssl_support_method       = "sni-only"
+      minimum_protocol_version = "TLSv1.2_2021"
+    }
+  }
+
+  dynamic "viewer_certificate" {
+    for_each = local.use_custom_domain ? [] : [1]
+
+    content {
+      cloudfront_default_certificate = true
+    }
   }
 }
 

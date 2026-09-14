@@ -18,18 +18,29 @@ variable "github_repo" {
 
 variable "domain_name" {
   description = <<-EOT
-    Custom domain name for CloudFront. Empty string (the default) skips
-    ACM/Route53 and the distribution and API Gateway use their default AWS
-    hostnames. Custom domain support (ACM certificate, Route53 records,
-    CloudFront aliases) is not built yet; leave this empty for v0.
+    Custom domain the site is served on, for example "example.com". Empty
+    string (the default) skips ACM and Route53 entirely: the distribution
+    keeps its default *.cloudfront.net hostname and the CloudFront default
+    certificate. Setting it creates a DNS-validated ACM certificate in
+    us-east-1, adds the name as a CloudFront alias, and points A/AAAA alias
+    records at the distribution. The hosted zone must already exist in this
+    account (see infra/README.md, "Custom domain").
   EOT
   type        = string
   default     = ""
+}
 
-  validation {
-    condition     = var.domain_name == ""
-    error_message = "Custom domain support (ACM + Route53) is not implemented yet. Leave domain_name empty for v0."
-  }
+variable "hosted_zone_name" {
+  description = <<-EOT
+    Name of the Route53 public hosted zone that holds the records for
+    domain_name. Empty string (the default) means "same as domain_name",
+    which is right for an apex deployment. Set it when domain_name is a
+    subdomain served from a parent zone, for example domain_name
+    "app.example.com" in hosted zone "example.com". Ignored when
+    domain_name is empty.
+  EOT
+  type        = string
+  default     = ""
 }
 
 variable "lambda_zip_path" {
