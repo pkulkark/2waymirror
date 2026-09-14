@@ -30,6 +30,7 @@ All responses JSON. Errors use `{"detail": "..."}` (FastAPI default).
 | Method and path | Success | Errors |
 |---|---|---|
 | `GET /api/health` | `200 {"status":"ok","version":"x.y.z"}` | |
+| `GET /api/site` | `200 {"feedback_email": str \| null}`, public details for the root page read from the private profile (`feedback_email`, falling back to `email`) so no address lives in this repo | |
 | `GET /api/sessions/{token}` | `200 {"session": Session, "content": Content}` | `404` unknown token, `410` expired or revoked, body `{"detail", "candidate": {"name", "email"}, "expires_at"}` so the page can offer the candidate's contact; the profile is read on its own for this, so a broken answer file cannot turn the 410 into a 500 |
 | `POST /api/sessions/{token}/answers` body `{"answers": {"<question_id>": "<text>"}}` | `201 {"submitted_at": "..."}`; a later submit replaces the stored answers and refreshes the question snapshot | `404`, `410` (same body as above), `422` unknown question id, empty answer, or a required question missing |
 
@@ -42,7 +43,7 @@ All responses JSON. Errors use `{"detail": "..."}` (FastAPI default).
 Directory layout, identical whether the source is a local directory or an S3 prefix:
 
 ```
-profile.yaml                # name, email, headline, links, location
+profile.yaml                # name, email, feedback_email (optional), headline, links, location
 logistics.yaml              # ordered list of items (label, value); each may carry per-variant overrides under `variants:`
 company_questions.yaml      # list; each may carry `variants:` to restrict which variants ask it
 sections/<section>.yaml     # id, title, ordered list of answer ids

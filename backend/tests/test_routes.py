@@ -335,3 +335,44 @@ def test_get_session_with_undeclared_variant_is_404(
     response = client.get(f"/api/sessions/{record.token}")
 
     assert response.status_code == 404
+
+
+def test_site_returns_the_feedback_email_from_the_profile(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+) -> None:
+    client, _ = api
+
+    response = client.get("/api/site")
+
+    assert response.status_code == 200
+    assert response.json() == {"feedback_email": "jordan@example.com"}
+
+
+def test_site_prefers_a_dedicated_feedback_email(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, _ = api
+    (tmp_path / "profile.yaml").write_text(
+        "name: Only Profile\nemail: only@example.com\nfeedback_email: feedback@example.com\n"
+    )
+    monkeypatch.setenv("TWM_CONTENT_SOURCE", str(tmp_path))
+
+    response = client.get("/api/site")
+
+    assert response.json() == {"feedback_email": "feedback@example.com"}
+
+
+def test_site_without_a_readable_profile_has_no_email(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, _ = api
+    monkeypatch.setenv("TWM_CONTENT_SOURCE", str(tmp_path))
+
+    response = client.get("/api/site")
+
+    assert response.status_code == 200
+    assert response.json() == {"feedback_email": None}

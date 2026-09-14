@@ -231,3 +231,23 @@ export async function submitAnswers(
   if (response.status === 422) return { kind: 'invalid', detail: await readDetail(response) }
   return { kind: 'error', detail: await readDetail(response) }
 }
+
+export interface SiteDetails {
+  feedback_email: string | null
+}
+
+/**
+ * Public details for the root page, read from the private content so that no address is
+ * committed to this repository. Any failure yields no email, and the page shows no link.
+ */
+export async function fetchSite(): Promise<SiteDetails> {
+  try {
+    const response = await fetch('/api/site')
+    if (!response.ok) return { feedback_email: null }
+    const body: unknown = await response.json()
+    const email = readRecord(body).feedback_email
+    return { feedback_email: readEmail(email) }
+  } catch {
+    return { feedback_email: null }
+  }
+}

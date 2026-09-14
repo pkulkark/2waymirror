@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { GitFork } from 'lucide-react'
+
+import { fetchSite } from '@/api'
 
 import { RuntimeDiagram, DeployDiagram } from '@/components/ArchitectureDiagram'
 import Page from '@/components/Page'
@@ -9,8 +12,6 @@ import { cn } from '@/lib/utils'
 
 const SOURCE_URL = 'https://github.com/pkulkark/2waymirror'
 const DECISIONS_URL = `${SOURCE_URL}/tree/main/docs/adr`
-// Candidate draft: replace the mockup address before publishing the page.
-const FEEDBACK_EMAIL = 'hello@example.com'
 
 const decisions = [
   {
@@ -39,7 +40,7 @@ const decisions = [
   },
 ]
 
-function ProjectFooter() {
+function ProjectFooter({ feedbackEmail }: { feedbackEmail: string | null }) {
   return (
     <footer className="mx-auto flex w-[960px] flex-col items-center gap-2.5 py-10">
       <nav aria-label="Project links" className="flex items-center gap-6 text-[15px] font-semibold">
@@ -49,9 +50,11 @@ function ProjectFooter() {
         <a href={DECISIONS_URL} className={TEXT_LINK}>
           Decision records
         </a>
-        <a href={`mailto:${FEEDBACK_EMAIL}`} className={TEXT_LINK}>
-          Feedback on this page
-        </a>
+        {feedbackEmail && (
+          <a href={`mailto:${feedbackEmail}`} className={TEXT_LINK}>
+            Feedback on this page
+          </a>
+        )}
       </nav>
       <p className="text-muted-ink text-[13px]">Built by the candidate.</p>
     </footer>
@@ -59,6 +62,18 @@ function ProjectFooter() {
 }
 
 export default function HowIBuiltIt() {
+  // The feedback address comes from the private content, never from this repository.
+  const [feedbackEmail, setFeedbackEmail] = useState<string | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    fetchSite().then((site) => {
+      if (!cancelled) setFeedbackEmail(site.feedback_email)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <Page
       mainClassName="gap-0 pt-0"
@@ -81,7 +96,7 @@ export default function HowIBuiltIt() {
           </div>
         </header>
       }
-      footer={<ProjectFooter />}
+      footer={<ProjectFooter feedbackEmail={feedbackEmail} />}
     >
       <ProjectStory />
       <div className="flex flex-col gap-6">
