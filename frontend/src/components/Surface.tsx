@@ -87,7 +87,13 @@ export default function Surface({
         <h2 className={headerRow}>
           <button
             {...triggerProps}
-            className={cn(headerInner, 'h-full cursor-pointer text-left', FOCUS_RING)}
+            className={cn(
+              headerInner,
+              'h-full cursor-pointer text-left',
+              FOCUS_RING,
+              // Keep the outline inside the section's clipped, rounded edges when collapsed.
+              'focus-visible:-outline-offset-2',
+            )}
           >
             {headerContent}
           </button>

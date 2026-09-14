@@ -26,7 +26,7 @@ const buttonVariants = cva(
         lightOutline: 'border-surface-border text-ink hover:bg-moss-tint border bg-transparent',
         dark: 'bg-on-dark text-dark hover:bg-on-dark/90',
         darkOutline:
-          'border-dark-border text-on-dark hover:bg-dark-input hover:text-on-dark bg-transparent',
+          'border-dark-border text-on-dark hover:bg-dark-input hover:text-on-dark border bg-transparent',
       },
       size: {
         default: 'h-9 px-4 py-2',
