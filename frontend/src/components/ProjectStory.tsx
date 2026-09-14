@@ -1,4 +1,4 @@
-/** Candidate draft from the root-page mockup; final wording is reviewed in the PR. */
+/** Candidate-approved introduction to the project and its build story. */
 export default function ProjectStory() {
   return (
     <section
@@ -9,19 +9,22 @@ export default function ProjectStory() {
         Another company. Another initial call.
       </h1>
       <p>
-        Thirty to sixty minutes on your background, what you are looking for, and whether the
+        Thirty to sixty minutes on your background, what you’re looking for, and whether the
         practical details line up. A hiring manager conversation a week later. Then a technical
-        round. Across the companies in your pipeline you give the same answers, tell the same
-        stories, and explain the same projects, and the recruiter on the other side asks the same
-        opening questions of candidate after candidate. Both sides invest those hours before
-        discovering what could have been clear much earlier: the compensation does not align, the
-        role is not what the posting said, or the team works in a way the candidate would not
-        choose.
+        round.
       </p>
       <p>
-        2WayMirror moves that groundwork ahead of the meeting. A candidate prepares their experience
-        once and shares a dedicated link with each company, tailored to the kind of role they are
-        pursuing. The hiring team explores it when it suits them:
+        Across the companies in your pipeline, you give the same answers, tell the same stories, and
+        explain the same projects. Across their candidates, recruiters and hiring managers ask the
+        same questions. Hours of conversation and weeks of scheduling can pass before either side
+        discovers a mismatch.
+      </p>
+      <p>
+        <strong className="font-medium">
+          2WayMirror lets both sides do that groundwork before booking the time.
+        </strong>{' '}
+        A candidate prepares their answers once and shares a dedicated link with each company,
+        tailored to the kind of role they’re pursuing.
       </p>
       <ul className="flex list-disc flex-col gap-1.5 pl-6">
         <li>
@@ -29,24 +32,28 @@ export default function ProjectStory() {
           compensation, and practical fit.
         </li>
         <li>
-          <strong className="font-medium">Hiring managers</strong> read concrete examples of
-          ownership, collaboration, and difficult decisions.
+          <strong className="font-medium">Hiring managers</strong> explore examples of ownership,
+          collaboration, and difficult decisions.
         </li>
         <li>
           <strong className="font-medium">Engineers</strong> examine projects, code, and technical
-          tradeoffs as evidence of capability and a starting point for assessment.
+          tradeoffs as evidence of capability.
         </li>
       </ul>
       <p>
-        The company answers the candidate's questions in the same space. Both sides spot mismatches
-        earlier, carry context into the next stage, and decide which conversations are worth
-        scheduling. When you do meet, you start further along: "I read about the migration you led.
-        We are facing something similar. Can we talk about the tradeoffs?"
+        The exchange goes both ways. The company answers the candidate’s questions about the team,
+        expectations, and working environment in the same space. Both sides get information they
+        would otherwise spend calls collecting.
       </p>
       <p>
-        This project is my own example. Below is the story of building 2WayMirror: the
-        implementation, the decisions, and the lessons. Work you can explore before deciding what
-        you would like to ask me about.
+        That means less repetition, earlier decisions about fit, and fewer meetings spent
+        establishing the basics. When you do meet, you can start with something specific: “I read
+        about the migration you led. We’re facing something similar. Can we talk about the
+        tradeoffs?”
+      </p>
+      <p>
+        This project is my own example. Below, you can explore its architecture, the choices behind
+        it, and how I used AI to build it—then decide what you’d like to ask me about.
       </p>
     </section>
   )
