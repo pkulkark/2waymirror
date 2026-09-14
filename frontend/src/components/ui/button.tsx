@@ -2,10 +2,17 @@ import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 
+import { FOCUS_RING } from '@/lib/styles'
 import { cn } from '@/lib/utils'
 
+/**
+ * The one 44px control from design-system.md ("Controls"): 8px radius
+ * (`--radius-control`), 15px semibold label. Pick the variant for the surface it sits on:
+ * `light` / `light-outline` on light surfaces, `dark` / `dark-outline` on dark ones.
+ * Focus is the shared FOCUS_RING, so one constant governs every control.
+ */
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  `inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none ${FOCUS_RING} [&_svg]:pointer-events-none [&_svg]:shrink-0`,
   {
     variants: {
       variant: {
@@ -15,12 +22,18 @@ const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
+        light: 'bg-moss text-on-dark no-underline hover:bg-moss-hover',
+        lightOutline: 'border-surface-border text-ink hover:bg-moss-tint border bg-transparent',
+        dark: 'bg-on-dark text-dark hover:bg-on-dark/90',
+        darkOutline:
+          'border-dark-border text-on-dark hover:bg-dark-input hover:text-on-dark border bg-transparent',
       },
       size: {
         default: 'h-9 px-4 py-2',
         sm: 'h-8 rounded-md px-3 text-xs',
         lg: 'h-10 rounded-md px-6',
         icon: 'size-9',
+        control: 'h-11 px-5 text-[15px] leading-none font-semibold',
       },
     },
     defaultVariants: {

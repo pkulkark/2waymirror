@@ -29,7 +29,6 @@ import Page from '@/components/Page'
 import Surface from '@/components/Surface'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { FOCUS_RING } from '@/lib/styles'
 import { useReducedMotion } from '@/lib/motion'
 import {
   clearAnswerDraft,
@@ -97,12 +96,6 @@ function sectionIcon(index: number): LucideIcon {
   return SECTION_ICONS[index] ?? FileText
 }
 
-/** A 44px control on light, per design-system.md ("Controls"): the two dead-end actions. */
-const ACTION_BUTTON = cn(
-  'inline-flex h-11 cursor-pointer items-center justify-center rounded-[8px] px-5 text-[15px] leading-none font-semibold',
-  FOCUS_RING,
-)
-
 function NotFoundState() {
   return (
     <DeadEnd title="This link does not match a session">
@@ -148,12 +141,9 @@ function ExpiredState({
       title="This link has expired"
       action={
         email ? (
-          <a
-            href={`mailto:${email}`}
-            className={cn(ACTION_BUTTON, 'bg-moss hover:bg-moss-hover text-on-dark no-underline')}
-          >
-            Email {contact}
-          </a>
+          <Button asChild variant="light" size="control">
+            <a href={`mailto:${email}`}>Email {contact}</a>
+          </Button>
         ) : undefined
       }
     >
@@ -170,16 +160,9 @@ function ErrorState({ detail, onRetry }: { detail: string; onRetry: () => void }
     <DeadEnd
       title="Something went wrong"
       action={
-        <button
-          type="button"
-          onClick={onRetry}
-          className={cn(
-            ACTION_BUTTON,
-            'border-surface-border text-ink hover:bg-moss-tint border bg-transparent',
-          )}
-        >
+        <Button type="button" variant="lightOutline" size="control" onClick={onRetry}>
           Try again
-        </button>
+        </Button>
       }
     >
       {detail}
@@ -279,7 +262,7 @@ function CompanyQuestionsForm({
             aria-describedby={fieldErrors[q.id] ? `error-${q.id}` : undefined}
             required={q.required}
             disabled={submitting}
-            className="bg-dark-input border-dark-border text-on-dark h-24 min-h-24 field-sizing-fixed rounded-lg px-3.5 py-3 text-[15px] shadow-none focus-visible:border-moss focus-visible:ring-moss focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-dark aria-invalid:border-danger-on-dark aria-invalid:ring-danger-on-dark motion-reduce:transition-none md:text-[15px]"
+            className="bg-dark-input border-dark-border text-on-dark h-24 min-h-24 field-sizing-fixed rounded-control px-3.5 py-3 text-[15px] shadow-none focus-visible:border-moss aria-invalid:border-danger-on-dark aria-invalid:ring-danger-on-dark md:text-[15px]"
             value={values[q.id] ?? ''}
             onChange={(e) => onChange(q.id, e.target.value)}
           />
@@ -290,11 +273,7 @@ function CompanyQuestionsForm({
           )}
         </div>
       ))}
-      <Button
-        type="submit"
-        disabled={submitting}
-        className="bg-on-dark text-dark hover:bg-on-dark/90 focus-visible:ring-moss focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-dark h-11 w-fit rounded-lg px-5 text-[15px] font-semibold motion-reduce:transition-none"
-      >
+      <Button type="submit" variant="dark" size="control" disabled={submitting} className="w-fit">
         {submitting && (
           <LoaderCircle
             aria-hidden="true"
@@ -637,8 +616,9 @@ function SessionPageForToken({ token }: { token: string | undefined }) {
                   </p>
                   <Button
                     type="button"
-                    variant="outline"
-                    className="border-dark-border text-on-dark hover:bg-dark-input hover:text-on-dark focus-visible:ring-moss focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-dark h-11 shrink-0 rounded-lg bg-transparent text-[15px] motion-reduce:transition-none"
+                    variant="darkOutline"
+                    size="control"
+                    className="shrink-0"
                     onClick={() => {
                       submission.clearErrors()
                       setAnswers(currentAnswers(session.answers ?? {}, content.company_questions))

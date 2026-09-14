@@ -3,6 +3,7 @@ import { type LucideIcon } from 'lucide-react'
 
 import { CollapseBody, CollapseChevron } from '@/components/Collapse'
 import { useCollapse } from '@/lib/collapse'
+import { FOCUS_RING } from '@/lib/styles'
 import { cn } from '@/lib/utils'
 
 export interface SurfaceProps {
@@ -88,7 +89,10 @@ export default function Surface({
             {...triggerProps}
             className={cn(
               headerInner,
-              'focus-visible:outline-moss h-full cursor-pointer text-left focus-visible:outline-2 focus-visible:-outline-offset-2',
+              'h-full cursor-pointer text-left',
+              FOCUS_RING,
+              // Keep the outline inside the section's clipped, rounded edges when collapsed.
+              'focus-visible:-outline-offset-2',
             )}
           >
             {headerContent}

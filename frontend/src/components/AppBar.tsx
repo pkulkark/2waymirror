@@ -122,7 +122,8 @@ export default function AppBar({
               // An explicit flag wins; otherwise the tab is active when its path is the page.
               const active = tab.active ?? pathname === tab.to
               const className = cn(
-                'focus-visible:outline-moss flex items-center gap-2 border-b-2 text-[15px] leading-[1.4] font-semibold focus-visible:outline-2 focus-visible:-outline-offset-2',
+                'flex items-center gap-2 border-b-2 text-[15px] leading-[1.4] font-semibold',
+                FOCUS_RING,
                 active ? 'border-moss text-on-dark' : 'text-on-dark-muted border-transparent',
               )
               const label = (
