@@ -58,8 +58,10 @@ whole tree: neither twice in one section nor in two different sections.
 An answer body may cite its own evidence with a standard Markdown footnote reference, `[^1]`,
 `[^2]`, and so on. The number is the position of the item in that answer's `evidence` list, so
 `[^1]` points at the first entry. No footnote definitions are needed anywhere in the file: the
-frontend turns each marker into a superscript link to the matching evidence row. Every marker
-must point at an evidence item that exists after the variant merge for that variant;
+frontend turns each marker in prose into a superscript link to the matching evidence row.
+Markers in code blocks, inline code, link labels, and images stay literal and are not validated
+as evidence references. Every prose marker must point at an evidence item that exists after
+the variant merge for that variant;
 `2wm content check` loads every declared variant and rejects a marker beyond the merged
 list (including one that only dangles for a single variant whose override replaced the
 evidence list). As a defensive fallback the frontend still leaves an unmatched marker as

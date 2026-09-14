@@ -9,6 +9,7 @@ from moto import mock_aws
 from twowaymirror.content import (
     ContentError,
     UnknownVariantError,
+    clear_cache,
     declared_variants,
     load_content,
 )
@@ -203,14 +204,60 @@ def test_invalid_answer_id_charset_raises(tmp_path: Path, settings: Settings) ->
         load_content(_settings_for(source, settings), variant="senior")
 
 
-def test_dangling_footnote_marker_raises(tmp_path: Path, settings: Settings) -> None:
+@pytest.mark.parametrize(
+    "prose",
+    [
+        "Extra claim[^2].",
+        "**Extra claim[^2].**",
+        "> Extra claim[^2].",
+        "- Extra claim[^2].",
+        "Extra claim[&#94;2].",
+        "Extra claim[^0].",
+    ],
+)
+def test_dangling_footnote_marker_raises(tmp_path: Path, settings: Settings, prose: str) -> None:
     source = _copy_sample_to(tmp_path)
     # why-leaving has one evidence item; [^2] dangles for every variant.
     answer_path = source / "answers" / "why-leaving.md"
-    answer_path.write_text(answer_path.read_text() + "\nExtra claim[^2].\n")
+    answer_path.write_text(answer_path.read_text() + f"\n{prose}\n")
 
-    with pytest.raises(ContentError, match=r"\[\^2\]"):
+    with pytest.raises(ContentError, match="with no matching evidence"):
         load_content(_settings_for(source, settings), variant="senior")
+
+
+@pytest.mark.parametrize(
+    "literal",
+    [
+        "Write `[^2]` literally.",
+        "```markdown\nExample[^2]\n```",
+        "~~~markdown\nExample[^2]\n~~~",
+        "    Example[^2]",
+        "See [label[^2]](https://example.com).",
+        "See [**label[^2]**][ref].\n\n[ref]: https://example.com",
+        "![alt[^2]](https://example.com/image.png)",
+        "![alt[^2]][ref]\n\n[ref]: https://example.com/image.png",
+    ],
+)
+def test_literal_footnote_markers_are_ignored(
+    tmp_path: Path, settings: Settings, literal: str
+) -> None:
+    source = _copy_sample_to(tmp_path)
+    answer_path = source / "answers" / "why-leaving.md"
+    body = answer_path.read_text() + f"\n\n{literal}\n\nReal claim[^1].\n"
+    answer_path.write_text(body)
+    variant_settings = _settings_for(source, settings)
+
+    result = load_content(variant_settings, variant="senior")
+    answer = next(
+        item for section in result.sections for item in section.items if item.id == "why-leaving"
+    )
+    assert literal in answer.answer_md
+
+    # Ignoring a literal must not hide a subsequent invalid reference in prose.
+    answer_path.write_text(body + "\nExtra claim[^2].\n")
+    clear_cache()
+    with pytest.raises(ContentError, match=r"\[\^2\]"):
+        load_content(variant_settings, variant="senior")
 
 
 def test_dangling_footnote_after_variant_evidence_override_raises(

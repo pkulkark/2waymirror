@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urlparse
 
 import boto3
 import yaml
+from markdown_it import MarkdownIt
 from pydantic import BaseModel
 
 from twowaymirror.models import (
@@ -36,7 +38,8 @@ _SECTIONS_DIR = "sections"
 _ANSWERS_DIR = "answers"
 
 _ANSWER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
-_FOOTNOTE_RE = re.compile(r"\[\^(\d+)\]")
+_FOOTNOTE_RE = re.compile(r"\[\^([0-9]+)\]")
+_MARKDOWN = MarkdownIt("commonmark")
 
 
 class ContentError(Exception):
@@ -206,6 +209,23 @@ def _visible_for_variant(question: dict[str, Any], variant: str) -> bool:
     return restriction is None or variant in restriction
 
 
+def _footnote_markers(body: str) -> Iterator[str]:
+    """Find evidence markers in prose, matching frontend/src/lib/footnotes.ts contexts."""
+    for block in _MARKDOWN.parse(body):
+        if block.type != "inline":
+            continue
+        link_depth = 0
+        for token in block.children or []:
+            if token.type == "link_open":
+                link_depth += 1
+            elif token.type == "link_close":
+                link_depth -= 1
+            elif token.type == "text" and link_depth == 0:
+                # Code and images have their own token types; link labels stay literal too.
+                for match in _FOOTNOTE_RE.finditer(token.content):
+                    yield match.group(1)
+
+
 def _resolve(raw: _RawContent, variant: Variant) -> Content:
     candidate = _merge_overrides(raw.profile, variant)
     logistics = [LogisticsItem(**_merge_overrides(item, variant)) for item in raw.logistics]
@@ -227,12 +247,12 @@ def _resolve(raw: _RawContent, variant: Variant) -> Content:
             merged = _merge_overrides(raw.answer_front_matter[answer_id], variant)
             evidence = [Evidence(**item) for item in merged.get("evidence", [])]
             body = raw.answer_bodies[answer_id]
-            for match in _FOOTNOTE_RE.finditer(body):
-                position = int(match.group(1))
+            for marker in _footnote_markers(body):
+                position = int(marker)
                 if position < 1 or position > len(evidence):
                     raise ContentError(
                         f"answer {answer_id!r} for variant {variant!r} has "
-                        f"footnote [^{match.group(1)}] with no matching evidence "
+                        f"footnote [^{marker}] with no matching evidence "
                         f"({len(evidence)} evidence item(s))"
                     )
             items.append(
