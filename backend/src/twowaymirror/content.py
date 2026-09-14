@@ -11,13 +11,16 @@ the I/O once; the (cheap, in-memory) variant merge runs on every call.
 
 from __future__ import annotations
 
+import re
 import time
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urlparse
 
 import boto3
 import yaml
+from markdown_it import MarkdownIt
 from pydantic import BaseModel
 
 from twowaymirror.models import (
@@ -33,6 +36,10 @@ from twowaymirror.settings import Settings
 
 _SECTIONS_DIR = "sections"
 _ANSWERS_DIR = "answers"
+
+_ANSWER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_FOOTNOTE_RE = re.compile(r"\[\^([0-9]+)\]")
+_MARKDOWN = MarkdownIt("commonmark")
 
 
 class ContentError(Exception):
@@ -149,8 +156,27 @@ def _load_raw(source: _ContentSource) -> _RawContent:
     ]
 
     answer_ids: set[str] = set()
+    first_seen_in: dict[str, str] = {}
     for section in sections:
-        answer_ids.update(section.get("items", []))
+        section_id = str(section.get("id", "?"))
+        items = section.get("items", [])
+        seen_in_section: set[str] = set()
+        for answer_id in items:
+            if not _ANSWER_ID_RE.match(str(answer_id)):
+                raise ContentError(
+                    f"invalid answer id {answer_id!r} in section {section_id!r}: "
+                    "must match ^[A-Za-z0-9_-]+$"
+                )
+            if answer_id in seen_in_section:
+                raise ContentError(f"duplicate answer id {answer_id!r} in section {section_id!r}")
+            seen_in_section.add(answer_id)
+            if answer_id in first_seen_in:
+                raise ContentError(
+                    f"duplicate answer id {answer_id!r} in section {section_id!r} "
+                    f"(already in section {first_seen_in[answer_id]!r})"
+                )
+            first_seen_in[answer_id] = section_id
+            answer_ids.add(answer_id)
 
     front_matter: dict[str, dict[str, Any]] = {}
     bodies: dict[str, str] = {}
@@ -183,6 +209,23 @@ def _visible_for_variant(question: dict[str, Any], variant: str) -> bool:
     return restriction is None or variant in restriction
 
 
+def _footnote_markers(body: str) -> Iterator[str]:
+    """Find evidence markers in prose, matching frontend/src/lib/footnotes.ts contexts."""
+    for block in _MARKDOWN.parse(body):
+        if block.type != "inline":
+            continue
+        link_depth = 0
+        for token in block.children or []:
+            if token.type == "link_open":
+                link_depth += 1
+            elif token.type == "link_close":
+                link_depth -= 1
+            elif token.type == "text" and link_depth == 0:
+                # Code and images have their own token types; link labels stay literal too.
+                for match in _FOOTNOTE_RE.finditer(token.content):
+                    yield match.group(1)
+
+
 def _resolve(raw: _RawContent, variant: Variant) -> Content:
     candidate = _merge_overrides(raw.profile, variant)
     logistics = [LogisticsItem(**_merge_overrides(item, variant)) for item in raw.logistics]
@@ -202,13 +245,23 @@ def _resolve(raw: _RawContent, variant: Variant) -> Content:
         items: list[SectionItem] = []
         for answer_id in section.get("items", []):
             merged = _merge_overrides(raw.answer_front_matter[answer_id], variant)
+            evidence = [Evidence(**item) for item in merged.get("evidence", [])]
+            body = raw.answer_bodies[answer_id]
+            for marker in _footnote_markers(body):
+                position = int(marker)
+                if position < 1 or position > len(evidence):
+                    raise ContentError(
+                        f"answer {answer_id!r} for variant {variant!r} has "
+                        f"footnote [^{marker}] with no matching evidence "
+                        f"({len(evidence)} evidence item(s))"
+                    )
             items.append(
                 SectionItem(
                     id=answer_id,
                     question=merged["question"],
                     summary=merged.get("summary"),
-                    answer_md=raw.answer_bodies[answer_id],
-                    evidence=[Evidence(**item) for item in merged.get("evidence", [])],
+                    answer_md=body,
+                    evidence=evidence,
                 )
             )
         sections.append(Section(id=section["id"], title=section["title"], items=items))
