@@ -149,13 +149,14 @@ export default function HowIBuiltIt() {
           </div>
         </Surface>
         <Surface title="How AI was used">
-          {/* Candidate draft from the mockup. Final ownership and AI-use wording comes from #65. */}
           <p className="font-serif text-[17px] leading-[1.6]">
-            I built this with an AI assistant in the loop, and I want to be precise about the split.
-            The idea, the architecture, and every decision are mine, written up as decision records
-            with the options I rejected. The assistant wrote scaffolding, tests, and infrastructure
-            from those decisions, and critiqued my drafts of the recruiter-facing answers without
-            writing them. Nothing merged that I cannot explain at a whiteboard.
+            I used an AI assistant throughout this project, and I want to be precise about the
+            split. The idea is mine. I directed the architecture and made the final decisions,
+            documenting the reasoning and alternatives in decision records. The assistant wrote the
+            application code, tests, and infrastructure, and critiqued my drafts of the
+            recruiter-facing answers without writing them. I reviewed the changes, challenged the
+            implementation, and decided what to merge. Nothing was merged that I cannot explain in
+            detail.
           </p>
         </Surface>
       </div>
