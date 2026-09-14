@@ -3,6 +3,11 @@ output "cloudfront_domain" {
   value       = aws_cloudfront_distribution.main.domain_name
 }
 
+output "site_url" {
+  description = "Public URL of the site: the custom domain when one is configured, the CloudFront hostname otherwise."
+  value       = local.use_custom_domain ? "https://${var.domain_name}" : "https://${aws_cloudfront_distribution.main.domain_name}"
+}
+
 output "api_endpoint" {
   description = "API Gateway HTTP API's default endpoint (not the public entry point; use cloudfront_domain for that)."
   value       = aws_apigatewayv2_api.main.api_endpoint

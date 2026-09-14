@@ -75,7 +75,31 @@ The Lambda deployment package comes from `var.lambda_zip_path` (default `../back
 
 If the file is missing, `apply` fails with a message saying so. The only exception is `-var allow_stub_lambda=true`, a bootstrap-only opt-in that deploys a stub handler answering 503 so the rest of the stack can be created before the first real build. It defaults to off so a missing artifact can never become a silently dead deployment.
 
-`var.domain_name` is accepted but must stay `""` for v0 (a variable validation enforces this); a custom domain needs ACM and Route53 wiring that is not built yet.
+`var.domain_name` is empty by default, which keeps the site on the CloudFront hostname. See "Custom domain" below for turning it on.
+
+## Custom domain
+
+The custom domain is one variable. Empty (the default) means no ACM certificate, no Route53 records, no CloudFront aliases, and `terraform plan` shows no diff against a stack deployed without it.
+
+Prerequisites:
+
+- Register the domain, and have its **public hosted zone in Route53 in this account**. Registering through Route53 creates the zone for you. If the domain is registered elsewhere, create the hosted zone by hand and point the registrar's NS records at the four nameservers the zone lists; DNS validation and the alias records both need the zone to be authoritative before they can work.
+- Terraform looks the zone up, it does not create it, so destroying this stack cannot take the zone or its delegation with it.
+- The CI roles need ACM and Route53 permissions, which `infra/bootstrap` grants. If bootstrap was applied before those statements existed, re-apply it (by hand, as always) before CI plans or applies with a domain set, or the run fails with AccessDenied.
+
+Turn it on:
+
+```sh
+terraform apply -var env=dev -var domain_name=example.com
+```
+
+or set the `DOMAIN_NAME` repository variable, which CI passes through as `TF_VAR_domain_name` to both plan and apply. Locally, `export TF_VAR_domain_name=example.com` does the same thing without repeating `-var` on every command.
+
+For a subdomain served from a parent zone, also set `hosted_zone_name` (repository variable `HOSTED_ZONE_NAME`) to the zone that holds the records, for example `domain_name=app.example.com` with `hosted_zone_name=example.com`. It defaults to `domain_name`, which is what an apex deployment wants.
+
+What the apply does: issues a DNS-validated ACM certificate in **us-east-1** (CloudFront accepts certificates from that region only, whatever region the rest of the stack is in), writes the validation CNAMEs into the zone, waits for ACM to issue, then adds the name as a CloudFront alias and points A and AAAA alias records at the distribution. Validation usually takes a few minutes and the apply blocks until it finishes; the distribution update that follows takes several more. The `site_url` output is the custom domain once it is set, and the CloudFront hostname otherwise.
+
+To roll back, unset the variable (delete the `DOMAIN_NAME` repository variable, or `unset TF_VAR_domain_name`) and apply. The distribution goes back to its default hostname and certificate, and the certificate and records are destroyed. The hosted zone and the registration are untouched.
 
 ## Client-side routing
 

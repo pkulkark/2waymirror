@@ -155,6 +155,27 @@ data "aws_iam_policy_document" "github_plan" {
     ]
     resources = ["*"]
   }
+
+  # Reads for the custom domain (root module var.domain_name). Inert while
+  # no domain is configured, since nothing then calls them. ACM certificate
+  # ARNs and the hosted zone id are not known when this module is applied,
+  # so these cannot be scoped further than the service.
+  statement {
+    sid    = "ReadCustomDomain"
+    effect = "Allow"
+    actions = [
+      "acm:DescribeCertificate",
+      "acm:ListCertificates",
+      "acm:ListTagsForCertificate",
+      "route53:GetHostedZone",
+      "route53:ListHostedZones",
+      "route53:ListHostedZonesByName",
+      "route53:ListResourceRecordSets",
+      "route53:ListTagsForResource",
+      "route53:GetChange",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "github_plan" {
@@ -358,6 +379,34 @@ data "aws_iam_policy_document" "github_deploy" {
       "cloudfront:GetCachePolicy",
       "cloudfront:GetOriginRequestPolicy",
       "cloudfront:ListOriginRequestPolicies",
+    ]
+    resources = ["*"]
+  }
+
+  # Custom domain (root module var.domain_name): a DNS-validated ACM
+  # certificate in us-east-1 and records in a pre-existing hosted zone.
+  # Inert while no domain is configured. Certificate ARNs carry a random id
+  # and the zone id is not known when this module is applied, so these stay
+  # at service scope; the zone itself is only ever read, never deleted,
+  # since the root module looks it up with a data source.
+  statement {
+    sid    = "ManageCustomDomain"
+    effect = "Allow"
+    actions = [
+      "acm:RequestCertificate",
+      "acm:DescribeCertificate",
+      "acm:ListCertificates",
+      "acm:DeleteCertificate",
+      "acm:AddTagsToCertificate",
+      "acm:RemoveTagsFromCertificate",
+      "acm:ListTagsForCertificate",
+      "route53:GetHostedZone",
+      "route53:ListHostedZones",
+      "route53:ListHostedZonesByName",
+      "route53:ListResourceRecordSets",
+      "route53:ListTagsForResource",
+      "route53:ChangeResourceRecordSets",
+      "route53:GetChange",
     ]
     resources = ["*"]
   }
