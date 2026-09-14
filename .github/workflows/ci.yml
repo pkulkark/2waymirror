@@ -142,33 +142,44 @@ jobs:
         run: terraform plan -no-color -input=false -lock=false | tee plan.txt
         continue-on-error: true
 
-      - name: Post plan to PR
+      # The PR comment is a summary only: the outcome, the "Plan:" line, and
+      # the resource addresses with their actions. The full plan, which names
+      # account ids, bucket names, and ARNs, stays in the job log, which only
+      # collaborators can read once the repository is public.
+      - name: Summarise plan
+        if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
+        run: |
+          {
+            grep -E '^(Plan:|No changes\.)' plan.txt || true
+            grep -E '^  # .* (will be|must be) ' plan.txt | sed 's/^  //' || true
+            grep -qE '^Changes to Outputs:' plan.txt && echo 'Outputs change.' || true
+            grep -qiE '^(Error|╷)' plan.txt && echo 'Plan reported errors; see the job log.' || true
+          } > plan-summary.txt
+          if [ ! -s plan-summary.txt ]; then echo 'No changes.' > plan-summary.txt; fi
+
+      - name: Post plan summary to PR
         if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_BACKEND_BUCKET != ''
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const planPath = path.join(process.env.GITHUB_WORKSPACE, 'infra', 'plan.txt');
-            let plan = 'No plan output found.';
+            const summaryPath = path.join(process.env.GITHUB_WORKSPACE, 'infra', 'plan-summary.txt');
+            let summary = 'No summary found.';
             try {
-              plan = fs.readFileSync(planPath, 'utf8');
+              summary = fs.readFileSync(summaryPath, 'utf8').trim();
             } catch (err) {
-              plan = `Failed to read plan output: ${err.message}`;
-            }
-            const maxLen = 60000;
-            if (plan.length > maxLen) {
-              plan = plan.slice(0, maxLen) + '\n... (truncated)';
+              summary = `Failed to read the plan summary: ${err.message}`;
             }
             const outcome = '${{ steps.plan.outcome }}';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = [
-              `#### Terraform Plan: \`${outcome}\``,
-              '<details><summary>Show plan</summary>',
+              `#### Terraform plan: \`${outcome}\``,
               '',
               '```',
-              plan,
+              summary,
               '```',
-              '</details>',
+              `Full plan in the [job log](${runUrl}).`,
             ].join('\n');
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
