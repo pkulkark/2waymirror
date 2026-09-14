@@ -17,7 +17,6 @@ describe('Page', () => {
 
     expect(screen.getByRole('heading', { name: 'Jordan Sample' })).toBeInTheDocument()
     expect(screen.getByRole('main')).toHaveTextContent('Content')
-    expect(screen.getByText('Built by the candidate.')).toBeInTheDocument()
     expect(container.firstElementChild).toHaveClass('bg-ground', 'min-h-screen')
   })
 })

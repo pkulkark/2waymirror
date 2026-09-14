@@ -95,7 +95,7 @@ Sentence case everywhere. No all-caps, no tracking on labels, no em-dashes in co
 - Dead ends: the bar shows only the name (expired) or the wordmark (not found), no chips, no
   tabs; one centered 560px surface with the title, the message, and for expired an email
   button in accent.
-- Footer: 13px muted, centered: "Built by the candidate." and a link "How this page was made".
+- Footer: 13px, centered: a link "How this page was made".
 - Controls: 44px minimum hit height; 2px accent focus ring with 2px offset.
 - Mobile (under 640px): the bar stacks (name, chips row with the session chip shortened to
   "until 15 Sep", headline, links, tabs scrolling horizontally) with 16px side padding;

@@ -11,8 +11,6 @@ describe('Footer', () => {
         <Footer />
       </MemoryRouter>,
     )
-
-    expect(screen.getByText('Built by the candidate.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'How this page was made' })).toHaveAttribute(
       'href',
       '/',

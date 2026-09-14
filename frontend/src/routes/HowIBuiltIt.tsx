@@ -53,7 +53,6 @@ function ProjectFooter() {
           Feedback on this page
         </a>
       </nav>
-      <p className="text-muted-ink text-[13px]">Built by the candidate.</p>
     </footer>
   )
 }

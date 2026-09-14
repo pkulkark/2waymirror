@@ -609,7 +609,6 @@ describe('SessionPage', () => {
     expect(screen.queryByRole('button', { name: /Questions for you/ })).not.toBeInTheDocument()
     // The app bar and the footer stay on every tab.
     expect(screen.getByText('Acme, until 8 Sep')).toBeInTheDocument()
-    expect(screen.getByText('Built by the candidate.')).toBeInTheDocument()
 
     expect(screen.getByRole('link', { name: /Behavioral/ })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: /Screening/ })).not.toHaveAttribute('aria-current')
@@ -849,7 +848,6 @@ describe('SessionPage', () => {
     })
 
     expect(screen.getByRole('heading', { name: '2WayMirror' })).toBeInTheDocument()
-    expect(screen.getByText('Built by the candidate.')).toBeInTheDocument()
     // No chips and no tabs behind a dead end.
     expect(screen.queryByRole('navigation', { name: 'Sections' })).not.toBeInTheDocument()
   })

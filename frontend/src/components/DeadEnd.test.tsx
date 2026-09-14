@@ -28,7 +28,6 @@ describe('DeadEnd', () => {
     )
     // No name given, so the bar keeps the wordmark.
     expect(screen.getByRole('heading', { name: '2WayMirror' })).toBeInTheDocument()
-    expect(screen.getByText('Built by the candidate.')).toBeInTheDocument()
 
     const card = container.querySelector('main > div')
     expect(card).toHaveClass('w-[560px]', 'mx-auto', 'mt-[72px]', 'p-12', 'rounded-lg', 'border')

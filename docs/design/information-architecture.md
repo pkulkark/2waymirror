@@ -73,7 +73,7 @@ replaces instead of returning 409.
 
 ### Footer, on every tab
 
-One line: "Built by the candidate. How this page was made", linking to `/`. No hand-off block
+One line: a link "How this page was made" to `/`. No hand-off block
 after the form; the tab bar is the pointer to the deeper sections.
 
 ## Dead ends
