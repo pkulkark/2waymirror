@@ -18,9 +18,7 @@ Content is served only against a valid session token and is never bundled into t
 ```
 variants.yaml               # the variant ids this content supports (id, label)
 profile.yaml                # name, email, headline, links, location; email is what an
-                             # expired link offers the visitor; feedback_email (optional)
-                             # is the address the public root page offers for feedback
-                             # about the app, falling back to email
+                             # expired link offers the visitor
 logistics.yaml              # ordered list of items (label, value); each may carry
                              # per-variant overrides under `variants:`
 company_questions.yaml      # list; each may carry `variants: [...]` to restrict

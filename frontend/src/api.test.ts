@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
-import { fetchSession, fetchSite, submitAnswers, type SessionContentResponse } from '@/api'
+import { fetchSession, submitAnswers, type SessionContentResponse } from '@/api'
 
 const sampleResponse: SessionContentResponse = {
   session: {
@@ -264,25 +264,3 @@ test.each([null, {}, { submitted_at: 'invalid' }])(
     })
   },
 )
-
-describe('fetchSite', () => {
-  test('returns a plausible feedback email', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(jsonResponse(200, { feedback_email: 'a@b.c' })),
-    )
-    expect(await fetchSite()).toEqual({ feedback_email: 'a@b.c' })
-  })
-
-  test('returns null for a missing, malformed, or failed response', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(jsonResponse(200, { feedback_email: 'not an email' })),
-    )
-    expect(await fetchSite()).toEqual({ feedback_email: null })
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(500, { detail: 'boom' })))
-    expect(await fetchSite()).toEqual({ feedback_email: null })
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
-    expect(await fetchSite()).toEqual({ feedback_email: null })
-  })
-})

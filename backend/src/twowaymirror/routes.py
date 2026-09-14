@@ -8,18 +8,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
-from twowaymirror.content import (
-    UnknownVariantError,
-    load_candidate_profile,
-    load_content,
-    load_site_profile,
-)
+from twowaymirror.content import UnknownVariantError, load_candidate_profile, load_content
 from twowaymirror.models import (
     AnswersSubmitRequest,
     Content,
     QuestionSnapshot,
     SessionContentResponse,
-    SiteResponse,
     SubmitAnswersResponse,
 )
 from twowaymirror.repository import DynamoDBSessionRepository, SessionRecord
@@ -84,18 +78,6 @@ def _content_for(settings: Settings, variant: str) -> Content:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Session content unavailable."
         ) from exc
-
-
-@router.get("/site", response_model=SiteResponse)
-def get_site(settings: SettingsDep) -> SiteResponse:
-    """Public, unauthenticated: only the fields the root page shows to everyone."""
-    try:
-        profile = load_site_profile(settings)
-    except Exception:
-        logger.exception("Could not load the profile for the public site details")
-        return SiteResponse()
-    email = profile.get("feedback_email") or profile.get("email")
-    return SiteResponse(feedback_email=email if isinstance(email, str) and email else None)
 
 
 @router.get("/sessions/{token}", response_model=SessionContentResponse)

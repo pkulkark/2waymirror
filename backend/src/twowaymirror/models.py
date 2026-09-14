@@ -125,17 +125,6 @@ class Content(BaseModel):
     company_questions: list[CompanyQuestion]
 
 
-class SiteResponse(BaseModel):
-    """GET /api/site: the public details the root page needs from the private content.
-
-    feedback_email is the address the public page offers for feedback about the app, taken from
-    profile.yaml's feedback_email, falling back to email. Null when neither is set or the
-    content cannot be read; the page then shows no feedback link.
-    """
-
-    feedback_email: str | None = None
-
-
 class SessionContentResponse(BaseModel):
     """GET /api/sessions/{token} success response."""
 

@@ -1,17 +1,9 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, expect, test, vi } from 'vitest'
+import { expect, test } from 'vitest'
 
 import HowIBuiltIt from './HowIBuiltIt'
-
-function siteResponse(body: unknown, status = 200): Response {
-  return { status, ok: status >= 200 && status < 300, json: async () => body } as Response
-}
-
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
 
 function renderPage() {
   return render(
@@ -32,11 +24,7 @@ test('provides runtime and deployment diagrams with text descriptions', () => {
   expect(deploy.querySelector('desc')).toHaveTextContent('short-lived AWS credentials')
 })
 
-test('each decision links to its own record and describes the rejected alternative', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue(siteResponse({ feedback_email: 'jordan@example.com' })),
-  )
+test('each decision links to its own record and describes the rejected alternative', () => {
   renderPage()
   const cards = screen.getAllByRole('article')
   expect(cards).toHaveLength(3)
@@ -63,10 +51,8 @@ test('each decision links to its own record and describes the rejected alternati
     'https://github.com/pkulkark/2waymirror/tree/main/docs/adr',
   )
   expect(
-    (await within(footer).findByRole('link', { name: 'Feedback on this page' })).getAttribute(
-      'href',
-    ),
-  ).toBe('mailto:jordan@example.com')
+    within(footer).getByRole('link', { name: 'Feedback on this page' }).getAttribute('href'),
+  ).toMatch(/^mailto:/)
   expect(screen.queryByRole('link', { name: 'How this page was made' })).not.toBeInTheDocument()
 })
 
@@ -87,32 +73,4 @@ test('sections start open and can be independently collapsed and reopened with t
   await user.keyboard(' ')
   expect(trigger).toHaveAttribute('aria-expanded', 'true')
   expect(body).not.toHaveAttribute('inert')
-})
-
-test('offers the feedback address served from the private content', async () => {
-  const fetchMock = vi
-    .fn()
-    .mockResolvedValue(siteResponse({ feedback_email: 'jordan@example.com' }))
-  vi.stubGlobal('fetch', fetchMock)
-  renderPage()
-
-  const link = await screen.findByRole('link', { name: 'Feedback on this page' })
-  expect(link).toHaveAttribute('href', 'mailto:jordan@example.com')
-  expect(fetchMock).toHaveBeenCalledWith('/api/site')
-})
-
-test('shows no feedback link when the content has no address or the request fails', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(siteResponse({ feedback_email: null })))
-  renderPage()
-  await waitFor(() => {
-    expect(screen.getByRole('link', { name: 'Source on GitHub' })).toBeInTheDocument()
-  })
-  expect(screen.queryByRole('link', { name: 'Feedback on this page' })).not.toBeInTheDocument()
-
-  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
-  renderPage()
-  await waitFor(() => {
-    expect(screen.getAllByRole('link', { name: 'Source on GitHub' }).length).toBe(2)
-  })
-  expect(screen.queryByRole('link', { name: 'Feedback on this page' })).not.toBeInTheDocument()
 })

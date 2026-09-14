@@ -260,15 +260,6 @@ def load_candidate_profile(settings: Settings, *, variant: Variant) -> dict[str,
     return _merge_overrides(profile, variant)
 
 
-def load_site_profile(settings: Settings) -> dict[str, Any]:
-    """The candidate profile as written, with no variant merge, for public site details.
-
-    Reads profile.yaml on its own so the public page does not depend on the rest of the tree.
-    """
-    source = _make_source(settings.TWM_CONTENT_SOURCE, settings.AWS_REGION)
-    return yaml.safe_load(source.read_text("profile.yaml")) or {}
-
-
 def declared_variants(settings: Settings) -> list[str]:
     """Variant ids the loaded content declares, in declaration order."""
     raw = _get_raw_content(
