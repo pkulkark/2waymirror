@@ -14,7 +14,7 @@ in the scroll path.
 
 | Route | Page |
 |---|---|
-| `/` | How it was built. Opens with what 2WayMirror is, then the build story, and ends with a mailto link for feedback on the app. There is no separate landing page. |
+| `/` | How it was built. Opens with what 2WayMirror is, then the build story, and ends with a link to the repository's issues for feedback on the app; no personal address appears on the public page. There is no separate landing page. |
 | `/s/:token` | Session, screening tab (default). |
 | `/s/:token/behavioral` | Session, behavioral tab. |
 | `/s/:token/deep-dive` | Session, project deep dive tab. |
