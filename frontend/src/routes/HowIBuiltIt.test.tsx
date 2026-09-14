@@ -50,9 +50,10 @@ test('each decision links to its own record and describes the rejected alternati
     'href',
     'https://github.com/pkulkark/2waymirror/tree/main/docs/adr',
   )
-  expect(
-    within(footer).getByRole('link', { name: 'Feedback on this page' }).getAttribute('href'),
-  ).toMatch(/^mailto:/)
+  expect(within(footer).getByRole('link', { name: 'Feedback on this page' })).toHaveAttribute(
+    'href',
+    'https://github.com/pkulkark/2waymirror/issues',
+  )
   expect(screen.queryByRole('link', { name: 'How this page was made' })).not.toBeInTheDocument()
 })
 

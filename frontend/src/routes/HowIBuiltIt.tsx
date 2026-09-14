@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils'
 
 const SOURCE_URL = 'https://github.com/pkulkark/2waymirror'
 const DECISIONS_URL = `${SOURCE_URL}/tree/main/docs/adr`
-// Candidate draft: replace the mockup address before publishing the page.
-const FEEDBACK_EMAIL = 'hello@example.com'
+// Feedback about the app goes to the public repository, never to a personal address.
+const FEEDBACK_URL = `${SOURCE_URL}/issues`
 
 const decisions = [
   {
@@ -49,7 +49,7 @@ function ProjectFooter() {
         <a href={DECISIONS_URL} className={TEXT_LINK}>
           Decision records
         </a>
-        <a href={`mailto:${FEEDBACK_EMAIL}`} className={TEXT_LINK}>
+        <a href={FEEDBACK_URL} className={TEXT_LINK}>
           Feedback on this page
         </a>
       </nav>
