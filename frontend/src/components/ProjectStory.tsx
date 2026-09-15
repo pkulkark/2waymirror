@@ -3,9 +3,9 @@ export default function ProjectStory() {
   return (
     <section
       aria-labelledby="project-intro"
-      className="flex max-w-[760px] flex-col gap-4 pb-10 pt-12 font-serif text-[19px] leading-[1.55]"
+      className="mx-[37px] flex flex-col gap-4 pt-12 pb-10 font-serif text-[19px] leading-[1.55]"
     >
-      <h1 id="project-intro" className="text-[40px] leading-[1.15] font-medium">
+      <h1 id="project-intro" className="text-[30px] leading-[1.15] font-medium">
         Another company. Another initial call.
       </h1>
       <p>

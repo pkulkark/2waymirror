@@ -68,7 +68,13 @@ export default function Surface({
         )}
       >
         {count && <span>{count}</span>}
-        {collapsible && <CollapseChevron open={isOpen} reducedMotion={reducedMotion} />}
+        {collapsible && (
+          <CollapseChevron
+            open={isOpen}
+            reducedMotion={reducedMotion}
+            className={cn('stroke-2', dark ? 'text-on-dark' : 'text-ink')}
+          />
+        )}
       </span>
     </>
   )
