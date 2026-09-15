@@ -83,8 +83,8 @@ export default function LoadingSkeleton() {
         </span>
 
         {/* Logistics: four rows of a label over a value, hairline between. The blocks take the
-            heights of the real row in SessionPage — a 13px label at 1.4 is 18px, a 17px value
-            23.8px — so the rows do not move when the content lands. */}
+            heights of the real row in SessionPage: a 13px label at 1.4 is 18px, a 17px value
+            23.8px, so the rows do not move when the content lands. */}
         <SkeletonSurface>
           <div className="flex flex-col">
             {[0, 1, 2, 3].map((index) => (
