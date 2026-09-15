@@ -63,14 +63,14 @@ export default function HowIBuiltIt() {
       mainClassName="gap-0 pt-0"
       appBar={
         <header className="bg-dark sticky top-0 z-50">
-          <div className="mx-auto flex h-14 w-[960px] items-center justify-between gap-6">
-            <span className="text-on-dark font-serif text-[20px] leading-none font-medium">
+          <div className="mx-auto grid h-[76px] w-[960px] grid-cols-[1fr_auto_1fr] items-center gap-6">
+            <span className="text-on-dark col-start-2 text-center font-serif text-[32px] leading-none font-medium">
               2WayMirror
             </span>
             <a
               href={SOURCE_URL}
               className={cn(
-                'text-on-dark flex min-h-11 items-center gap-[7px] text-[15px] font-semibold hover:underline',
+                'text-on-dark col-start-3 flex min-h-11 items-center gap-[7px] justify-self-end text-[15px] font-semibold hover:underline',
                 FOCUS_RING,
               )}
             >
@@ -112,29 +112,31 @@ export default function HowIBuiltIt() {
               {decisions.map((decision) => (
                 <article
                   key={decision.record}
-                  className="border-surface-border flex flex-col gap-3.5 rounded-[10px] border p-5"
+                  className="border-surface-border flex flex-col overflow-hidden rounded-[10px] border"
                 >
-                  <h3 className="font-serif text-[20px] leading-[1.3] font-medium">
+                  <h3 className="bg-moss-tint border-surface-border flex min-h-[85px] items-center border-b px-5 py-4 font-serif text-[20px] leading-[1.3] font-medium">
                     {decision.title}
                   </h3>
-                  <dl className="flex flex-col gap-3.5 text-[14px] leading-[1.5]">
-                    <div className="flex flex-col gap-1">
-                      <dt className="text-moss text-[13px] font-semibold">Chosen</dt>
-                      <dd>{decision.chosen}</dd>
-                    </div>
-                    <div className="text-muted-ink flex flex-col gap-1">
-                      <dt className="text-[13px] font-semibold">Instead of</dt>
-                      <dd>{decision.alternative}</dd>
-                    </div>
-                  </dl>
-                  <p className="font-serif text-[16px] leading-[1.5]">{decision.reason}</p>
-                  <a
-                    className={cn(TEXT_LINK, 'mt-auto text-[14px]')}
-                    href={`${SOURCE_URL}/blob/main/docs/adr/${decision.record}`}
-                    aria-label={`Read decision record: ${decision.title}`}
-                  >
-                    Read decision record
-                  </a>
+                  <div className="flex flex-1 flex-col gap-3.5 px-5 pt-3.5 pb-5">
+                    <dl className="flex flex-col gap-3.5 text-[14px] leading-[1.5]">
+                      <div className="flex flex-col gap-1">
+                        <dt className="text-moss text-[13px] font-semibold">Chosen</dt>
+                        <dd>{decision.chosen}</dd>
+                      </div>
+                      <div className="text-muted-ink flex flex-col gap-1">
+                        <dt className="text-[13px] font-semibold">Instead of</dt>
+                        <dd>{decision.alternative}</dd>
+                      </div>
+                    </dl>
+                    <p className="font-serif text-[16px] leading-[1.5]">{decision.reason}</p>
+                    <a
+                      className={cn(TEXT_LINK, 'mt-auto text-[14px]')}
+                      href={`${SOURCE_URL}/blob/main/docs/adr/${decision.record}`}
+                      aria-label={`Read decision record: ${decision.title}`}
+                    >
+                      Read decision record
+                    </a>
+                  </div>
                 </article>
               ))}
             </div>
