@@ -53,7 +53,7 @@ export default function ProjectStory() {
       </p>
       <p>
         This project is my own example. Below, you can explore its architecture, the choices behind
-        it, and how I used AI to build it—then decide what you’d like to ask me about.
+        it, and how I used AI to build it, then decide what you’d like to ask me about.
       </p>
     </section>
   )

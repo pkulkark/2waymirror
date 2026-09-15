@@ -8,7 +8,7 @@ const ISO_PREFIX = /^\d{4}-\d{2}-\d{2}/
 
 /**
  * True when `value` is a string the page can format as a date. `Date.parse` alone is too
- * generous — it accepts "42" and, in some engines, prose like "15 September" — so the value
+ * generous: it accepts "42" and, in some engines, prose like "15 September", so the value
  * has to look like an ISO timestamp as well as parse to a real instant.
  */
 export function isIsoDate(value: unknown): value is string {

@@ -23,8 +23,8 @@ export interface DeadEndProps {
  * Measurements come from docs/design/mockups/Expired.dc.html and NotFound.dc.html. The card is
  * plain markup rather than a Surface: there is no header row to toggle and nothing to collapse.
  *
- * The title takes focus on mount. A dead end replaces the whole page — on the first load, and
- * again after a failed "Try again" that unmounts the button the reader just pressed — so
+ * The title takes focus on mount. A dead end replaces the whole page, on the first load and
+ * again after a failed "Try again" that unmounts the button the reader just pressed, so
  * without this the focus falls back to the document body and a screen reader announces
  * nothing. `tabIndex={-1}` makes the heading focusable without putting it in the tab order.
  */
