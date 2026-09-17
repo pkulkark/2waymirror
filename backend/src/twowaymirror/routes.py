@@ -16,6 +16,7 @@ from twowaymirror.models import (
     SessionContentResponse,
     SubmitAnswersResponse,
 )
+from twowaymirror.notifications import send_answers_email
 from twowaymirror.repository import DynamoDBSessionRepository, SessionRecord
 from twowaymirror.settings import Settings, get_settings
 
@@ -132,6 +133,10 @@ def submit_answers(
             detail=f"Required questions unanswered: {', '.join(missing)}",
         )
 
+    # One extra read, only to tell the notification whether this is the first submission or
+    # an edit. Answers stay editable until the link expires, so both happen.
+    first_submission = repository.get_answers(token) is None
+
     result = repository.put_answers(
         token,
         body.answers,
@@ -141,4 +146,7 @@ def submit_answers(
         ],
         ttl=record.ttl,
     )
+
+    # After the store, and never able to fail it: send_answers_email swallows its own errors.
+    send_answers_email(settings, record=record, answers=result, first_submission=first_submission)
     return SubmitAnswersResponse(submitted_at=result.submitted_at)

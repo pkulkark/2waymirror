@@ -12,5 +12,6 @@ One file per decision, numbered, never edited after acceptance (superseded inste
 | [0006](0006-authenticity-practices.md) | Authenticity practices for an AI-assisted build |
 | [0007](0007-private-content-sample-candidate.md) | Real content in a private repo and private S3 bucket; public repo ships a sample candidate |
 | [0008](0008-custom-domain-acm-route53.md) | Custom domain via ACM in us-east-1 and Route 53 alias records |
+| [0009](0009-submission-notifications-ses.md) | Submission notifications from the API handler through SES |
 
 Template: [0000-template.md](0000-template.md)

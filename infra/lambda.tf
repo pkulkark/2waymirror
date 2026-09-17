@@ -70,6 +70,25 @@ data "aws_iam_policy_document" "lambda_permissions" {
     ]
     resources = ["${aws_cloudwatch_log_group.lambda.arn}:*"]
   }
+
+  # Submission notifications, scoped to the two identities this stack creates:
+  # the function can send as the project domain to the configured recipient and
+  # to nothing else. The statement is absent entirely when notifications are
+  # off, since there are then no identity ARNs to name and a statement with an
+  # empty resource list is not a valid policy.
+  dynamic "statement" {
+    for_each = local.notify_enabled ? [1] : []
+
+    content {
+      sid     = "SendSubmissionNotifications"
+      effect  = "Allow"
+      actions = ["ses:SendEmail"]
+      resources = [
+        aws_ses_domain_identity.main[0].arn,
+        aws_ses_email_identity.notify[0].arn,
+      ]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "lambda" {
@@ -102,6 +121,13 @@ resource "aws_lambda_function" "api" {
       TWM_TABLE_NAME     = aws_dynamodb_table.main.name
       TWM_TENANT         = "default"
       TWM_CONTENT_SOURCE = "s3://${aws_s3_bucket.content.bucket}"
+      # The session links written into notification emails have to match the
+      # links that were sent to the company, so this is the site's own URL.
+      TWM_PUBLIC_BASE_URL = local.site_url
+      # Both empty unless notifications are switched on, which is what the
+      # handler checks before it calls SES at all.
+      TWM_NOTIFY_EMAIL = local.notify_enabled ? var.notify_email : ""
+      TWM_NOTIFY_FROM  = local.notify_enabled ? "no-reply@${var.domain_name}" : ""
       # AWS_REGION is a reserved Lambda runtime env var: it is set
       # automatically to this function's region and cannot be assigned here.
     }

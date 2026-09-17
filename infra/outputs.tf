@@ -5,7 +5,7 @@ output "cloudfront_domain" {
 
 output "site_url" {
   description = "Public URL of the site: the custom domain when one is configured, the CloudFront hostname otherwise."
-  value       = local.use_custom_domain ? "https://${var.domain_name}" : "https://${aws_cloudfront_distribution.main.domain_name}"
+  value       = local.site_url
 }
 
 output "api_endpoint" {

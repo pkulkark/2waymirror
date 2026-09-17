@@ -1,6 +1,6 @@
 # infra
 
-Terraform for the whole runtime topology: DynamoDB, S3 (web + content), Lambda, API Gateway, CloudFront, CloudWatch, and the GitHub OIDC deploy role. Pay-per-use only, per ADR-0001: no VPC, no RDS, no load balancer, no NAT.
+Terraform for the whole runtime topology: DynamoDB, S3 (web + content), Lambda, API Gateway, CloudFront, CloudWatch, SES (submission notifications, off by default), and the GitHub OIDC deploy role. Pay-per-use only, per ADR-0001: no VPC, no RDS, no load balancer, no NAT.
 
 ```
 infra/
@@ -100,6 +100,29 @@ For a subdomain served from a parent zone, also set `hosted_zone_name` (reposito
 What the apply does: issues a DNS-validated ACM certificate in **us-east-1** (CloudFront accepts certificates from that region only, whatever region the rest of the stack is in), writes the validation CNAMEs into the zone, waits for ACM to issue, then adds the name as a CloudFront alias and points A and AAAA alias records at the distribution. Validation usually takes a few minutes and the apply blocks until it finishes; the distribution update that follows takes several more. The `site_url` output is the custom domain once it is set, and the CloudFront hostname otherwise.
 
 To roll back, unset the variable (delete the `DOMAIN_NAME` repository variable, or `unset TF_VAR_domain_name`) and apply. The distribution goes back to its default hostname and certificate, and the certificate and records are destroyed. The hosted zone and the registration are untouched.
+
+## Submission notifications
+
+When a company submits or edits its answers, the API emails them to the candidate through SES (ADR-0009). Like the custom domain, it is one variable: `var.notify_email`, empty by default, which creates no SES resources at all and leaves `TWM_NOTIFY_EMAIL` and `TWM_NOTIFY_FROM` empty on the Lambda so the handler never calls SES.
+
+Prerequisites:
+
+- A custom domain, since the sender is `no-reply@<domain_name>` and SES verifies it through DNS records in the same hosted zone. `notify_email` on its own, with no `domain_name`, plans to nothing.
+- The CI roles need the SES permissions that `infra/bootstrap` grants. Bootstrap is applied **by hand, never by CI**, so if it was applied before those statements existed, re-apply it before CI plans or applies with `NOTIFY_EMAIL` set, or the run fails with AccessDenied.
+
+Turn it on by setting the `NOTIFY_EMAIL` repository variable, which CI passes through as `TF_VAR_notify_email` to both plan and apply, or locally:
+
+```sh
+terraform apply -var env=dev -var domain_name=example.com -var notify_email=you@example.com
+```
+
+The address is never committed: it lives in the repository variable and in the state, not in the repo.
+
+What the apply does: creates an SES domain identity for `domain_name`, enables DKIM and writes the three DKIM CNAMEs into the hosted zone, creates an email identity for `notify_email`, and grants the Lambda `ses:SendEmail` on those two identities only. The Lambda also gains `TWM_PUBLIC_BASE_URL` (the `site_url`), so the session links in the mail match the links that were sent out.
+
+**One manual step.** Creating the email identity makes SES send a verification request to `notify_email`; the link in it has to be clicked once. Until then, notifications are attempted and rejected, which is logged and never affects a submission. SES stays in **sandbox mode**, and that is sufficient here: sandbox only forbids sending to unverified destinations, and the single destination is the candidate's own verified address. No production access request is needed.
+
+To roll back, unset `NOTIFY_EMAIL` and apply. The identities and DKIM records are destroyed, and the Lambda goes back to sending nothing. The domain and the hosted zone are untouched.
 
 ## Client-side routing
 
