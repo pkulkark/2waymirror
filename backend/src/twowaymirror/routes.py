@@ -133,11 +133,9 @@ def submit_answers(
             detail=f"Required questions unanswered: {', '.join(missing)}",
         )
 
-    # One extra read, only to tell the notification whether this is the first submission or
-    # an edit. Answers stay editable until the link expires, so both happen.
-    first_submission = repository.get_answers(token) is None
-
-    result = repository.put_answers(
+    # Answers stay editable until the link expires, so this is a first submission or an
+    # edit, and the write itself says which: `replaced` is true when it overwrote one.
+    stored, replaced = repository.put_answers(
         token,
         body.answers,
         questions=[
@@ -148,5 +146,5 @@ def submit_answers(
     )
 
     # After the store, and never able to fail it: send_answers_email swallows its own errors.
-    send_answers_email(settings, record=record, answers=result, first_submission=first_submission)
-    return SubmitAnswersResponse(submitted_at=result.submitted_at)
+    send_answers_email(settings, record=record, answers=stored, first_submission=not replaced)
+    return SubmitAnswersResponse(submitted_at=stored.submitted_at)

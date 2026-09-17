@@ -2,17 +2,20 @@
 
 Sent from the request handler once the answers are stored, through SES (ADR-0009). The
 send is best effort by design: the answers are already persisted when this runs, so every
-failure here is swallowed and logged with the session token rather than raised. Off unless
-both TWM_NOTIFY_EMAIL and TWM_NOTIFY_FROM are set.
+failure here is swallowed and logged rather than raised. Off unless both TWM_NOTIFY_EMAIL
+and TWM_NOTIFY_FROM are set.
 """
 
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from typing import Any
 
 import boto3
+from botocore.config import Config
 
+from twowaymirror.links import session_link
 from twowaymirror.models import Answers, QuestionSnapshot
 from twowaymirror.repository import SessionRecord
 from twowaymirror.settings import Settings
@@ -21,14 +24,39 @@ logger = logging.getLogger(__name__)
 
 NOT_ANSWERED = "Not answered"
 
+# This runs inside the request, and the function's own timeout is 10 seconds. Left at the
+# botocore defaults a single unreachable SES endpoint would spend well over a minute
+# retrying and take the request down with it, so: one attempt, and both waits short enough
+# that the worst case (2 + 5) still fits in the budget. total_max_attempts rather than
+# max_attempts: botocore reads the latter as a retry count and would turn 1 into two
+# attempts, and two of these waits is 14 seconds, which is the timeout this is avoiding.
+# Nothing is lost by not retrying: the answers are already stored, and a failed send is
+# logged rather than raised.
+_SES_CONFIG = Config(
+    connect_timeout=2,
+    read_timeout=5,
+    retries={"mode": "standard", "total_max_attempts": 1},
+)
+
+# How many characters of the token the failure log may carry (see send_answers_email).
+TOKEN_LOG_PREFIX = 6
+
+
+# One region per process in practice; the bound is only there so the cache can never be
+# grown by anything but a configuration change.
+@lru_cache(maxsize=4)
+def _ses_client(region: str) -> Any:
+    """One client per region, kept for the life of the process.
+
+    Building a boto3 client costs tens of milliseconds of session and endpoint resolution,
+    which is worth paying once per warm Lambda instance rather than once per submission.
+    Tests that need a fresh client call `_ses_client.cache_clear()`.
+    """
+    return boto3.client("sesv2", region_name=region, config=_SES_CONFIG)
+
 
 def _client(settings: Settings) -> Any:
-    return boto3.client("sesv2", region_name=settings.AWS_REGION)
-
-
-def session_link(settings: Settings, token: str) -> str:
-    """The company-facing link, the same shape the CLI prints."""
-    return f"{settings.TWM_PUBLIC_BASE_URL.rstrip('/')}/s/{token}"
+    return _ses_client(settings.AWS_REGION)
 
 
 def _questions_for(answers: Answers) -> list[QuestionSnapshot]:
@@ -79,7 +107,10 @@ def send_answers_email(
     """Email the submitted answers to the configured recipient. Returns whether it sent.
 
     Never raises: a missing configuration returns False quietly, and anything SES throws
-    is logged with the token and returns False.
+    is logged and returns False. The log names the company and only the first few characters
+    of the token, which is enough to find the session and not enough to open it: these logs
+    are readable by anyone with CloudWatch access, and the token is the only credential the
+    session has.
     """
     if not settings.TWM_NOTIFY_EMAIL or not settings.TWM_NOTIFY_FROM:
         return False
@@ -100,6 +131,10 @@ def send_answers_email(
             },
         )
     except Exception:
-        logger.exception("Submission notification failed for session %s", record.token)
+        logger.exception(
+            "Submission notification failed for %s (session %s...)",
+            record.company,
+            record.token[:TOKEN_LOG_PREFIX],
+        )
         return False
     return True

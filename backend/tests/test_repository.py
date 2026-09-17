@@ -89,9 +89,12 @@ def test_get_answers_missing_returns_none(repository: DynamoDBSessionRepository)
 def test_put_and_get_answers(repository: DynamoDBSessionRepository) -> None:
     record = repository.create_session(company="Acme", contact="Sam", variant="senior")
 
-    result = repository.put_answers(record.token, {"team-structure": "We ship in small teams."})
+    result, replaced = repository.put_answers(
+        record.token, {"team-structure": "We ship in small teams."}
+    )
 
     assert result.answers == {"team-structure": "We ship in small teams."}
+    assert replaced is False
 
     fetched = repository.get_answers(record.token)
     assert fetched is not None
@@ -100,9 +103,14 @@ def test_put_and_get_answers(repository: DynamoDBSessionRepository) -> None:
 
 
 def test_put_answers_twice_replaces(repository: DynamoDBSessionRepository) -> None:
+    """The second put reports that it overwrote one, which is how a caller tells an edit
+    from a first submission without a read of its own."""
     record = repository.create_session(company="Acme", contact="Sam", variant="senior")
-    repository.put_answers(record.token, {"team-structure": "first submit"})
-    repository.put_answers(record.token, {"team-structure": "second submit"})
+    first = repository.put_answers(record.token, {"team-structure": "first submit"})
+    second = repository.put_answers(record.token, {"team-structure": "second submit"})
+
+    assert first.replaced is False
+    assert second.replaced is True
 
     fetched = repository.get_answers(record.token)
     assert fetched is not None

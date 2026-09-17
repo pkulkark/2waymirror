@@ -159,7 +159,7 @@ def test_no_send_when_a_notification_setting_is_empty(
     assert sent == []
 
 
-def test_submission_succeeds_and_logs_the_token_when_the_send_raises(
+def test_submission_succeeds_and_logs_a_truncated_token_when_the_send_raises(
     api: tuple[TestClient, DynamoDBSessionRepository],
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
@@ -180,7 +180,10 @@ def test_submission_succeeds_and_logs_the_token_when_the_send_raises(
     assert response.status_code == 201
     # The answers are stored whatever the send did.
     assert client.get(f"/api/sessions/{record.token}").json()["session"]["answers"] == answers
-    assert record.token in caplog.text
+    # Enough of the token to find the session, not enough to open it.
+    assert record.token not in caplog.text
+    assert f"{record.token[: notifications.TOKEN_LOG_PREFIX]}..." in caplog.text
+    assert "Acme" in caplog.text
     assert "SES is having a day" in caplog.text
 
 
@@ -189,7 +192,7 @@ def test_send_is_a_no_op_without_settings(
 ) -> None:
     _, repository = api
     record = repository.create_session(company="Acme", contact="Sam", variant="senior")
-    answers = repository.put_answers(record.token, {"team-structure": "Squads."})
+    answers, _ = repository.put_answers(record.token, {"team-structure": "Squads."})
     off = Settings(_env_file=None, TWM_NOTIFY_EMAIL="", TWM_NOTIFY_FROM="")
 
     assert (
@@ -207,7 +210,7 @@ def test_send_lists_answers_that_predate_the_question_snapshot(
     """Older submissions carry no snapshot; the email still names what was answered."""
     _, repository = api
     record = repository.create_session(company="Acme", contact="Sam", variant="senior")
-    answers = repository.put_answers(record.token, {"team-structure": "Squads."})
+    answers, _ = repository.put_answers(record.token, {"team-structure": "Squads."})
 
     assert answers.questions == []
     assert notifications.send_answers_email(
@@ -218,7 +221,20 @@ def test_send_lists_answers_that_predate_the_question_snapshot(
     assert "Squads." in body
 
 
-def test_session_link_does_not_double_the_slash() -> None:
-    settings = Settings(_env_file=None, TWM_PUBLIC_BASE_URL="https://2wm.example.com/")
+def test_ses_client_is_cached_per_region_and_cannot_outlast_the_lambda(
+    aws_credentials: None,
+) -> None:
+    """One client per region, and timeouts well inside the function's 10 second budget."""
+    settings = Settings(_env_file=None, AWS_REGION="ca-central-1")
+    notifications._ses_client.cache_clear()
+    try:
+        client = notifications._ses_client("ca-central-1")
 
-    assert notifications.session_link(settings, "abc") == "https://2wm.example.com/s/abc"
+        assert notifications._client(settings) is client
+        assert notifications._ses_client("us-east-1") is not client
+        assert client.meta.config.connect_timeout == 2
+        assert client.meta.config.read_timeout == 5
+        # One attempt in total, so the worst case is 7 seconds, not a multiple of it.
+        assert client.meta.config.retries == {"mode": "standard", "total_max_attempts": 1}
+    finally:
+        notifications._ses_client.cache_clear()

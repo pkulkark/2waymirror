@@ -9,11 +9,9 @@ from __future__ import annotations
 
 import os
 
+from twowaymirror.links import session_link
 from twowaymirror.repository import DynamoDBSessionRepository, ensure_table
 from twowaymirror.settings import Settings
-
-FRONTEND_DEV_ORIGIN = "http://localhost:5173"
-
 
 LOCAL_DYNAMODB_ENDPOINT = "http://127.0.0.1:8000"
 
@@ -36,7 +34,7 @@ def main() -> None:
         variant="senior",
     )
     print(f"Created session for {record.company} ({record.variant})")
-    print(f"{FRONTEND_DEV_ORIGIN}/s/{record.token}")
+    print(session_link(settings, record.token))
 
 
 if __name__ == "__main__":
