@@ -83,10 +83,16 @@ data "aws_iam_policy_document" "lambda_permissions" {
     for_each = local.notify_enabled ? [1] : []
 
     content {
-      sid       = "SendSubmissionNotifications"
-      effect    = "Allow"
-      actions   = ["ses:SendEmail"]
-      resources = [aws_ses_domain_identity.main[0].arn]
+      sid     = "SendSubmissionNotifications"
+      effect  = "Allow"
+      actions = ["ses:SendEmail"]
+      # SES authorises a send against both the sending identity and, in the
+      # sandbox, the recipient identity, so both ARNs are needed here. The
+      # condition below is what actually limits who the function may write to.
+      resources = [
+        aws_ses_domain_identity.main[0].arn,
+        aws_ses_email_identity.notify[0].arn,
+      ]
 
       condition {
         test     = "ForAllValues:StringEquals"
