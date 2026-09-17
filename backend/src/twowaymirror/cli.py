@@ -25,6 +25,7 @@ from twowaymirror.content import (
     declared_variants,
     load_content,
 )
+from twowaymirror.links import session_link
 from twowaymirror.repository import (
     DEFAULT_SESSION_LIFETIME_DAYS,
     DynamoDBSessionRepository,
@@ -96,7 +97,7 @@ def create(
         ["company", "contact", "variant", "expires"],
         [[record.company, record.contact, record.variant, record.expires_at.isoformat()]],
     )
-    typer.echo(f"{settings.TWM_PUBLIC_BASE_URL}/s/{record.token}")
+    typer.echo(session_link(settings, record.token))
 
 
 @app.command("list")

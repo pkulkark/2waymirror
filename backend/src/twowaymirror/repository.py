@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, NamedTuple
 
 import boto3
 from botocore.exceptions import ClientError
@@ -72,6 +72,13 @@ class SessionRecord(BaseModel):
             answers=answers.answers if answers else None,
             questions=answers.questions if answers else None,
         )
+
+
+class PutAnswersResult(NamedTuple):
+    """What a put_answers call stored, and whether it replaced an earlier submission."""
+
+    answers: Answers
+    replaced: bool
 
 
 def _client(settings: Settings) -> Any:
@@ -221,13 +228,19 @@ class DynamoDBSessionRepository:
         *,
         questions: list[QuestionSnapshot] | None = None,
         ttl: int | None = None,
-    ) -> Answers:
+    ) -> PutAnswersResult:
         """Store the answers, replacing any earlier submission for this session.
 
         Answers stay editable until the link expires, so a second submit overwrites the
         first and refreshes the question snapshot. `questions` is the snapshot of the
         company questions as the company saw them. `ttl` should be the session's ttl so
         the two items are retained together.
+
+        `replaced` says whether an item was already there, which is how the caller tells a
+        first submission from an edit. It comes from the write itself (ReturnValues
+        ALL_OLD) rather than a read before it: a separate read would be both an extra round
+        trip and a lie under two concurrent submits, where both would read nothing and both
+        would call themselves the first.
         """
         now = datetime.now(UTC)
         snapshot = questions or []
@@ -240,8 +253,11 @@ class DynamoDBSessionRepository:
         }
         if ttl is not None:
             item["ttl"] = ttl
-        self._table.put_item(Item=item)
-        return Answers(submitted_at=now, answers=answers, questions=snapshot)
+        response = self._table.put_item(Item=item, ReturnValues="ALL_OLD")
+        return PutAnswersResult(
+            answers=Answers(submitted_at=now, answers=answers, questions=snapshot),
+            replaced=response.get("Attributes") is not None,
+        )
 
 
 def _session_record_from_item(token: str, item: dict[str, Any]) -> SessionRecord:

@@ -176,6 +176,27 @@ data "aws_iam_policy_document" "github_plan" {
     ]
     resources = ["*"]
   }
+
+  # Reads for the submission notifications (root module var.notify_email): the
+  # SES domain and email identities the API sends through. Inert while no
+  # recipient is configured. SES identity ARNs are derived from the domain and
+  # the address, neither of which this module knows, so these stay at service
+  # scope like the custom-domain statements above.
+  statement {
+    sid    = "ReadSubmissionNotifications"
+    effect = "Allow"
+    actions = [
+      "ses:GetEmailIdentity",
+      "ses:GetIdentity*",
+      "ses:ListEmailIdentities",
+      "ses:GetDkimAttributes",
+      "ses:GetIdentityDkimAttributes",
+      "ses:GetIdentityVerificationAttributes",
+      "ses:ListIdentities",
+      "ses:ListTagsForResource",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "github_plan" {
@@ -407,6 +428,38 @@ data "aws_iam_policy_document" "github_deploy" {
       "route53:ListTagsForResource",
       "route53:ChangeResourceRecordSets",
       "route53:GetChange",
+    ]
+    resources = ["*"]
+  }
+
+  # Submission notifications (root module var.notify_email): the SES domain
+  # identity the API sends as, its DKIM records, and the verified recipient.
+  # Inert while no recipient is configured. Same scoping caveat as the reads on
+  # the plan role: the identity ARNs are not known when this module is applied.
+  # The DKIM records themselves go into the hosted zone through the Route 53
+  # permissions in the statement above.
+  statement {
+    sid    = "ManageSubmissionNotifications"
+    effect = "Allow"
+    actions = [
+      "ses:GetEmailIdentity",
+      "ses:GetIdentity*",
+      "ses:ListEmailIdentities",
+      "ses:GetDkimAttributes",
+      "ses:GetIdentityDkimAttributes",
+      "ses:GetIdentityVerificationAttributes",
+      "ses:ListIdentities",
+      "ses:ListTagsForResource",
+      "ses:CreateEmailIdentity",
+      "ses:DeleteEmailIdentity",
+      "ses:VerifyDomainIdentity",
+      "ses:VerifyDomainDkim",
+      "ses:VerifyEmailIdentity",
+      "ses:DeleteIdentity",
+      "ses:PutEmailIdentityDkimAttributes",
+      "ses:TagResource",
+      "ses:UntagResource",
+      "ses:SetIdentityDkimEnabled",
     ]
     resources = ["*"]
   }

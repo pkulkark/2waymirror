@@ -9,10 +9,13 @@ browser ──► CloudFront
               ├── default  ──► S3 web bucket (private, origin access control)   static React build
               └── /api/*   ──► API Gateway HTTP API ──► Lambda (FastAPI via Mangum)
                                                            ├── DynamoDB table (sessions and answers)
-                                                           └── S3 content bucket (read-only)
+                                                           ├── S3 content bucket (read-only)
+                                                           └── SES (submission notification, off by default)
 ```
 
 CloudFront rewrites S3 403/404 to `/index.html` with status 200 so client-side routes resolve. `/api/*` is never cached. The backend is deployed as a zip built by `backend/scripts/build_lambda.sh`. When `var.domain_name` is set the distribution also answers on that custom domain, over HTTPS with an ACM certificate in us-east-1 and Route53 alias records (ADR-0008); with it empty the default CloudFront hostname is the only entry point.
+
+A successful `POST /api/sessions/{token}/answers` also emails the answers to the candidate through SES, from the handler and after the write, with the subject saying whether it is a first submission or an edit (ADR-0009). Configured by `TWM_NOTIFY_EMAIL` and `TWM_NOTIFY_FROM`, both empty by default, which is the off switch; in the deployed stack they come from `var.notify_email` and resolve to `no-reply@<domain_name>`. The send is best effort and cannot fail the request: the answers are stored first and any SES error is logged with the token and swallowed.
 
 ## DynamoDB single table
 

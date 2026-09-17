@@ -80,6 +80,32 @@ answers:
 optional questions (`answer: null`); a required question is never null once answers exist,
 since the API rejects a submission missing one.
 
+## Submission notifications
+
+When a company submits its answers, the API emails them to the candidate through SES
+(ADR-0009). Two settings control it, both empty by default, which turns notifications off:
+
+| Setting | What |
+|---|---|
+| `TWM_NOTIFY_EMAIL` | Recipient of the notification. Empty means no send. |
+| `TWM_NOTIFY_FROM` | Sender address, a verified SES identity. In the deployed stack, `no-reply@<domain_name>`. |
+
+Both must be non-empty for anything to be sent. The mail carries the company, contact,
+variant, submitted timestamp, the session link, every question with its answer (or
+`Not answered`), and the `2wm pull <token>` command. It goes out on the first submission and
+again on every edit, with the subject saying which (`Answers from <company>` or
+`Answers updated from <company>`).
+
+The send happens after the answers are stored and can never fail the request: any error is
+caught and logged with the session token, and the company still gets its 201. It is skipped
+altogether, with a warning in the log, when the time left in the Lambda invocation cannot
+cover the SES call's worst case plus the response, so a slow request and a stalled SES
+cannot combine into a timeout after the answers were stored.
+
+SES starts in sandbox mode, which is enough here because the only recipient is the
+candidate: AWS emails `TWM_NOTIFY_EMAIL` a verification link that has to be clicked once
+before the first notification can arrive. See `infra/README.md`, "Submission notifications".
+
 ## Checks
 
 ```sh
@@ -99,6 +125,7 @@ uv run pytest --cov=twowaymirror --cov-report=term-missing --cov-fail-under=90
 | `src/twowaymirror/repository.py` | DynamoDB access: sessions and answers |
 | `src/twowaymirror/content.py` | Content loader: local path or `s3://`, variant merge, module-level cache |
 | `src/twowaymirror/routes.py` | `GET /api/sessions/{token}`, `POST /api/sessions/{token}/answers` |
+| `src/twowaymirror/notifications.py` | Submission notification email through SES: see "Submission notifications" above |
 | `src/twowaymirror/main.py` | FastAPI app factory, `/api/health` |
 | `src/twowaymirror/handler.py` | Lambda entry point (Mangum) |
 | `src/twowaymirror/cli.py` | `2wm` admin CLI: see "CLI" above |

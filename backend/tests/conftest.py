@@ -37,6 +37,9 @@ def settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
     monkeypatch.setenv("TWM_CONTENT_SOURCE", str(SAMPLE_CONTENT_DIR))
     monkeypatch.setenv("AWS_REGION", "ca-central-1")
     monkeypatch.delenv("TWM_DYNAMODB_ENDPOINT", raising=False)
+    # Notifications off unless a test opts in, so no test can reach for SES by accident.
+    monkeypatch.delenv("TWM_NOTIFY_EMAIL", raising=False)
+    monkeypatch.delenv("TWM_NOTIFY_FROM", raising=False)
     return Settings(_env_file=None)
 
 

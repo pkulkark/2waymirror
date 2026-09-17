@@ -67,3 +67,19 @@ variable "allow_stub_lambda" {
   type        = bool
   default     = false
 }
+
+variable "notify_email" {
+  description = <<-EOT
+    Recipient of the submission notification email: the address that hears
+    when a company submits or edits its answers. Empty string (the default)
+    disables notifications, and no SES resources are created. Only takes
+    effect together with domain_name, since the sender is
+    no-reply@<domain_name> and SES has to verify that domain. SES stays in
+    sandbox mode, so this address is sent a verification link on the first
+    apply and has to click it once (see infra/README.md, "Submission
+    notifications"). Never committed: it comes from the NOTIFY_EMAIL
+    repository variable in CI.
+  EOT
+  type        = string
+  default     = ""
+}

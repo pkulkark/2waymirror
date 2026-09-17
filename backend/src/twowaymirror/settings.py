@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     # How long a loaded content tree is served before it is re-read from the source. Lets a
     # content push show up on warm Lambda instances without a redeploy.
     TWM_CONTENT_CACHE_SECONDS: int = 300
+    # Submission notifications (see notifications.py). Both must be non-empty for a send to
+    # happen; either one empty is the default and turns notifications off.
+    TWM_NOTIFY_EMAIL: str = ""
+    TWM_NOTIFY_FROM: str = ""
 
 
 def get_settings() -> Settings:
