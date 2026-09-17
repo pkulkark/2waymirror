@@ -4,11 +4,13 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from fastapi import Request
 from fastapi.testclient import TestClient
 from moto import mock_aws
 
 from twowaymirror.main import create_app
 from twowaymirror.repository import DynamoDBSessionRepository, ensure_table
+from twowaymirror.routes import get_remaining_ms
 from twowaymirror.settings import Settings
 
 
@@ -335,3 +337,19 @@ def test_get_session_with_undeclared_variant_is_404(
     response = client.get(f"/api/sessions/{record.token}")
 
     assert response.status_code == 404
+
+
+def test_get_remaining_ms_reads_the_lambda_context() -> None:
+    """Mangum puts the context in the ASGI scope; the dependency reads the budget off it."""
+
+    class _Context:
+        def get_remaining_time_in_millis(self) -> int:
+            return 4321
+
+    request = Request({"type": "http", "headers": [], "aws.context": _Context()})
+
+    assert get_remaining_ms(request) == 4321
+
+
+def test_get_remaining_ms_is_none_outside_lambda() -> None:
+    assert get_remaining_ms(Request({"type": "http", "headers": []})) is None

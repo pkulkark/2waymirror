@@ -32,11 +32,26 @@ NOT_ANSWERED = "Not answered"
 # attempts, and two of these waits is 14 seconds, which is the timeout this is avoiding.
 # Nothing is lost by not retrying: the answers are already stored, and a failed send is
 # logged rather than raised.
+SES_CONNECT_TIMEOUT_SECONDS = 2
+SES_READ_TIMEOUT_SECONDS = 5
+
 _SES_CONFIG = Config(
-    connect_timeout=2,
-    read_timeout=5,
+    connect_timeout=SES_CONNECT_TIMEOUT_SECONDS,
+    read_timeout=SES_READ_TIMEOUT_SECONDS,
     retries={"mode": "standard", "total_max_attempts": 1},
 )
+
+# Milliseconds kept back for building and returning the 201 once the send comes back.
+RESPONSE_RESERVE_MS = 1000
+
+# What a send can cost at worst: one connect wait plus one read wait, plus the reserve.
+# Derived from the timeouts the client is built with so the two cannot drift apart. The
+# bounded client keeps a stalled SES from running away on its own, but it says nothing
+# about the time already spent loading content and storing the answers; when what is left
+# of the invocation cannot cover this, the send is skipped rather than started.
+SEND_BUDGET_MS = (
+    SES_CONNECT_TIMEOUT_SECONDS + SES_READ_TIMEOUT_SECONDS
+) * 1000 + RESPONSE_RESERVE_MS
 
 # How many characters of the token the failure log may carry (see send_answers_email).
 TOKEN_LOG_PREFIX = 6
@@ -103,6 +118,7 @@ def send_answers_email(
     record: SessionRecord,
     answers: Answers,
     first_submission: bool,
+    remaining_ms: int | None = None,
 ) -> bool:
     """Email the submitted answers to the configured recipient. Returns whether it sent.
 
@@ -111,8 +127,24 @@ def send_answers_email(
     of the token, which is enough to find the session and not enough to open it: these logs
     are readable by anyone with CloudWatch access, and the token is the only credential the
     session has.
+
+    `remaining_ms` is what is left of the Lambda invocation, or None when that is unknown
+    (local dev, tests), in which case the send goes ahead. Below SEND_BUDGET_MS the send is
+    skipped: the answers are already stored, and returning the 201 matters more than a
+    notification that could take the whole request past the function's timeout.
     """
     if not settings.TWM_NOTIFY_EMAIL or not settings.TWM_NOTIFY_FROM:
+        return False
+
+    if remaining_ms is not None and remaining_ms < SEND_BUDGET_MS:
+        logger.warning(
+            "Skipped the submission notification for %s (session %s...): %d ms left, "
+            "under the %d ms the send needs",
+            record.company,
+            record.token[:TOKEN_LOG_PREFIX],
+            remaining_ms,
+            SEND_BUDGET_MS,
+        )
         return False
 
     verb = "Answers from" if first_submission else "Answers updated from"

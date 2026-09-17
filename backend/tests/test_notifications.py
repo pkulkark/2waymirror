@@ -12,6 +12,7 @@ from moto import mock_aws
 from twowaymirror import notifications
 from twowaymirror.main import create_app
 from twowaymirror.repository import DynamoDBSessionRepository, ensure_table
+from twowaymirror.routes import get_remaining_ms
 from twowaymirror.settings import Settings
 
 NOTIFY_FROM = "no-reply@example.com"
@@ -66,6 +67,11 @@ def api(
         ses.create_email_identity(EmailIdentity=NOTIFY_FROM)
         ses.create_email_identity(EmailIdentity=NOTIFY_TO)
         yield TestClient(create_app()), DynamoDBSessionRepository(notify_settings)
+
+
+def _budget(client: TestClient, remaining_ms: int | None) -> None:
+    """Answer the invocation-budget dependency with a fixed value for this client."""
+    client.app.dependency_overrides[get_remaining_ms] = lambda: remaining_ms  # type: ignore[attr-defined]
 
 
 def _required_answers(client: TestClient, token: str) -> dict[str, str]:
@@ -238,3 +244,98 @@ def test_ses_client_is_cached_per_region_and_cannot_outlast_the_lambda(
         assert client.meta.config.retries == {"mode": "standard", "total_max_attempts": 1}
     finally:
         notifications._ses_client.cache_clear()
+
+
+def test_a_budget_under_the_send_cost_stores_the_answers_and_skips_the_send(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+    sent: list[dict[str, Any]],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A slow request leaves too little of the invocation to risk an SES call."""
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    answers = _required_answers(client, record.token)
+    _budget(client, 500)
+
+    with caplog.at_level(logging.WARNING, logger=notifications.__name__):
+        response = client.post(f"/api/sessions/{record.token}/answers", json={"answers": answers})
+
+    assert response.status_code == 201
+    assert sent == []
+    # The answers are stored whatever the send did.
+    assert client.get(f"/api/sessions/{record.token}").json()["session"]["answers"] == answers
+    assert "Acme" in caplog.text
+    assert record.token not in caplog.text
+    assert f"{record.token[: notifications.TOKEN_LOG_PREFIX]}..." in caplog.text
+    assert "500 ms left" in caplog.text
+
+
+def test_a_budget_over_the_send_cost_sends(
+    api: tuple[TestClient, DynamoDBSessionRepository], sent: list[dict[str, Any]]
+) -> None:
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    _budget(client, notifications.SEND_BUDGET_MS + 1_000)
+
+    response = client.post(
+        f"/api/sessions/{record.token}/answers",
+        json={"answers": _required_answers(client, record.token)},
+    )
+
+    assert response.status_code == 201
+    assert len(sent) == 1
+
+
+def test_an_unknown_budget_sends(
+    api: tuple[TestClient, DynamoDBSessionRepository], sent: list[dict[str, Any]]
+) -> None:
+    """Outside Lambda there is no budget to respect, so the send goes ahead."""
+    client, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    _budget(client, None)
+
+    response = client.post(
+        f"/api/sessions/{record.token}/answers",
+        json={"answers": _required_answers(client, record.token)},
+    )
+
+    assert response.status_code == 201
+    assert len(sent) == 1
+
+
+@pytest.mark.parametrize(
+    ("remaining_ms", "expected"),
+    [(notifications.SEND_BUDGET_MS, True), (notifications.SEND_BUDGET_MS - 1, False)],
+)
+def test_the_send_budget_boundary(
+    api: tuple[TestClient, DynamoDBSessionRepository],
+    notify_settings: Settings,
+    sent: list[dict[str, Any]],
+    remaining_ms: int,
+    expected: bool,
+) -> None:
+    """Exactly the budget is enough; one millisecond less is not."""
+    _, repository = api
+    record = repository.create_session(company="Acme", contact="Sam", variant="senior")
+    answers, _ = repository.put_answers(record.token, {"team-structure": "Squads."})
+
+    sent_it = notifications.send_answers_email(
+        notify_settings,
+        record=record,
+        answers=answers,
+        first_submission=True,
+        remaining_ms=remaining_ms,
+    )
+
+    assert sent_it is expected
+    assert len(sent) == (1 if expected else 0)
+
+
+def test_the_send_budget_is_derived_from_the_client_timeouts() -> None:
+    """The threshold and the client's waits are the same numbers, so they cannot drift."""
+    assert (
+        notifications.SEND_BUDGET_MS
+        == (notifications.SES_CONNECT_TIMEOUT_SECONDS + notifications.SES_READ_TIMEOUT_SECONDS)
+        * 1000
+        + notifications.RESPONSE_RESERVE_MS
+    )

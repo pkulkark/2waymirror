@@ -31,8 +31,22 @@ def get_repository(
     return DynamoDBSessionRepository(settings)
 
 
+def get_remaining_ms(request: Request) -> int | None:
+    """Milliseconds left in this Lambda invocation, or None when that is unknown.
+
+    Mangum puts the Lambda context object in the ASGI scope under "aws.context". Running
+    locally or under the test client there is no context, and None means "no budget to
+    respect" rather than "no time left".
+    """
+    remaining = getattr(request.scope.get("aws.context"), "get_remaining_time_in_millis", None)
+    if remaining is None:
+        return None
+    return int(remaining())
+
+
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 RepositoryDep = Annotated[DynamoDBSessionRepository, Depends(get_repository)]
+RemainingMsDep = Annotated[int | None, Depends(get_remaining_ms)]
 
 
 class SessionGoneError(Exception):
@@ -101,6 +115,7 @@ def submit_answers(
     body: AnswersSubmitRequest,
     repository: RepositoryDep,
     settings: SettingsDep,
+    remaining_ms: RemainingMsDep,
 ) -> SubmitAnswersResponse:
     record = _get_available_session(repository, token)
     content = _content_for(settings, record.variant)
@@ -145,6 +160,13 @@ def submit_answers(
         ttl=record.ttl,
     )
 
-    # After the store, and never able to fail it: send_answers_email swallows its own errors.
-    send_answers_email(settings, record=record, answers=stored, first_submission=not replaced)
+    # After the store, and never able to fail it: send_answers_email swallows its own errors,
+    # and skips the send outright when what is left of the invocation cannot cover it.
+    send_answers_email(
+        settings,
+        record=record,
+        answers=stored,
+        first_submission=not replaced,
+        remaining_ms=remaining_ms,
+    )
     return SubmitAnswersResponse(submitted_at=stored.submitted_at)

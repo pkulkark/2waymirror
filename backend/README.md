@@ -97,7 +97,10 @@ again on every edit, with the subject saying which (`Answers from <company>` or
 `Answers updated from <company>`).
 
 The send happens after the answers are stored and can never fail the request: any error is
-caught and logged with the session token, and the company still gets its 201.
+caught and logged with the session token, and the company still gets its 201. It is skipped
+altogether, with a warning in the log, when the time left in the Lambda invocation cannot
+cover the SES call's worst case plus the response, so a slow request and a stalled SES
+cannot combine into a timeout after the answers were stored.
 
 SES starts in sandbox mode, which is enough here because the only recipient is the
 candidate: AWS emails `TWM_NOTIFY_EMAIL` a verification link that has to be clicked once
