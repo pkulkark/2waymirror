@@ -25,7 +25,7 @@ Each directory's README has the full set of check commands. CI runs the same che
 
 ## Status
 
-Foundation. Nothing is deployed yet.
+Live at [2waymirror.dev](https://2waymirror.dev). The root page tells the story of the build; session pages are private links created by the candidate with the `2wm` CLI. The stack is deployed on every merge to `main`, serves the custom domain over HTTPS, and emails the candidate when a company submits its answers.
 
 ## Contributing
 
@@ -35,9 +35,9 @@ Run `npm install` at the repo root once after cloning. Its `prepare` script poin
 
 ## CI/CD
 
-- Every PR runs `backend`, `frontend`, and `infra` jobs (`.github/workflows/ci.yml`). The `infra` job always runs `terraform fmt -check -recursive`, `terraform init -backend=false`, and `terraform validate`; it also posts a `terraform plan` as a PR comment once the AWS deploy role and Terraform state bucket are configured (see below).
+- Every PR runs `backend`, `frontend`, and `infra` jobs (`.github/workflows/ci.yml`). The `infra` job always runs `terraform fmt -check -recursive`, `terraform init -backend=false`, and `terraform validate`; it also runs `terraform plan` against the deployed state and posts a summary (outcome, the `Plan:` line, and the changed resource addresses) as a PR comment; the full plan stays in the job log.
 - A push to `main` runs `.github/workflows/deploy.yml`: build the Lambda package, `terraform apply`, build the frontend, sync it to the web S3 bucket, and invalidate CloudFront.
-- AWS access from GitHub Actions is via OIDC, never long-lived keys. Configure these repository variables (Settings > Secrets and variables > Actions > Variables) once the AWS side (ADR-0004, `infra/`) exists:
+- AWS access from GitHub Actions is via OIDC, never long-lived keys. These repository variables (Settings > Secrets and variables > Actions > Variables) drive it:
 
   | Variable | Purpose |
   |---|---|
@@ -45,5 +45,7 @@ Run `npm install` at the repo root once after cloning. Its `prepare` script poin
   | `AWS_DEPLOY_ROLE_ARN` | ARN of the IAM role that workflows on `main` assume via OIDC to apply and deploy. |
   | `TF_BACKEND_BUCKET` | S3 bucket holding Terraform state, used to render `infra/backend.hcl` at CI time. |
   | `AWS_REGION` | Defaults to `ca-central-1` if unset. |
+  | `DOMAIN_NAME` | Custom domain for CloudFront; empty means the default CloudFront hostname (see `infra/README.md`). |
+  | `NOTIFY_EMAIL` | Recipient for submission notifications; empty disables them (see `infra/README.md`). |
 
   Until `AWS_PLAN_ROLE_ARN` and `TF_BACKEND_BUCKET` are set, the PR `infra` job still runs fmt/init/validate and simply skips the plan and comment steps.
